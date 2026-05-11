@@ -3,7 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GeoÁrea GNSS · Multi-constelação v2.4</title>
+    <title>GeoÁrea GNSS · Multi-constelação v2.7</title>
+
+    <!-- [MELHORIA v2.5] PWA — Meta tags para instalação em iOS e Android -->
+    <meta name="theme-color" content="#0066cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GeoÁrea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="GeoÁrea GNSS">
+    <meta name="description" content="App de coleta GNSS multi-constelação com cálculo de área geodésica, correção geoidal e modo offline">
+
+    <!-- Ícone SVG inline (1 arquivo, sem dependências externas) -->
+    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230066cc'/><circle cx='50' cy='38' r='14' fill='white'/><path d='M50 56 L36 80 L64 80 Z' fill='white'/><circle cx='50' cy='38' r='6' fill='%230066cc'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230066cc'/><circle cx='50' cy='38' r='14' fill='white'/><path d='M50 56 L36 80 L64 80 Z' fill='white'/><circle cx='50' cy='38' r='6' fill='%230066cc'/></svg>">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
@@ -161,6 +175,257 @@
             background: var(--danger); color: #fff; border: none; border-radius: 6px;
             padding: 6px 12px; font-weight: 700; font-size: 11px; cursor: pointer;
             margin-top: 8px; width: 100%;
+        }
+
+        /* [MELHORIA v2.7] Memorial descritivo */
+        .memorial-section {
+            background: var(--surface); border-radius: 10px; padding: 12px;
+            margin-bottom: 12px; border-left: 4px solid #5e35b1;
+        }
+        .memorial-form-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px;
+            margin: 10px 0;
+        }
+        .memorial-form-grid .full { grid-column: 1 / -1; }
+        .memorial-form-grid label {
+            font-size: 10px; color: var(--text2); display: block; margin-bottom: 2px;
+            text-transform: uppercase; font-weight: 700;
+        }
+        .memorial-form-grid input {
+            width: 100%; padding: 6px 8px; font-size: 12px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 4px; color: var(--text);
+        }
+        .memorial-confront-list {
+            max-height: 280px; overflow-y: auto;
+            margin: 10px 0; border: 1px solid var(--border); border-radius: 6px;
+            padding: 4px;
+        }
+        .memorial-confront-item {
+            display: grid; grid-template-columns: 50px 1fr; gap: 8px;
+            padding: 6px; align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .memorial-confront-item:last-child { border-bottom: none; }
+        .memorial-confront-item .lado {
+            font-size: 10px; color: var(--text2); font-weight: 700;
+        }
+        .memorial-confront-item .lado strong { color: var(--primary); font-size: 12px; }
+        .memorial-confront-item input {
+            width: 100%; padding: 5px 7px; font-size: 11px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; color: var(--text);
+        }
+        .memorial-preview {
+            background: var(--surface2); padding: 12px;
+            border-radius: 6px; margin-top: 10px;
+            max-height: 360px; overflow-y: auto;
+            font-family: 'Times New Roman', serif;
+            font-size: 11px; line-height: 1.6;
+            text-align: justify;
+            color: var(--text);
+        }
+        .memorial-preview .titulo {
+            font-weight: 800; text-align: center;
+            font-size: 13px; margin-bottom: 10px;
+        }
+        .memorial-preview .meta-table {
+            width: 100%; font-size: 10px; margin: 8px 0;
+            border-collapse: collapse;
+        }
+        .memorial-preview .meta-table td {
+            padding: 2px 6px; border: 1px solid var(--border);
+        }
+        .memorial-preview .meta-table .lbl {
+            background: var(--primary-light); font-weight: 700; width: 30%;
+        }
+        .memorial-preview .narrativa { text-indent: 24px; margin: 8px 0; }
+        .memorial-preview .assinatura {
+            margin-top: 30px; text-align: center; font-size: 11px;
+        }
+        .memorial-preview .linha-assinatura {
+            border-top: 1px solid var(--text); margin: 24px auto 4px;
+            width: 240px;
+        }
+        .dark-mode .memorial-preview { background: #2a2a30; }
+        .dark-mode .memorial-preview .meta-table .lbl { background: #1a3350; }
+
+        /* [MELHORIA v2.6] Galeria de fotos */
+        .foto-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: var(--accent); color: #fff;
+            padding: 1px 5px; border-radius: 8px;
+            font-size: 8px; font-weight: 700; margin-right: 4px;
+            cursor: pointer;
+        }
+        .foto-galeria {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 6px; margin-top: 8px;
+        }
+        .foto-thumb {
+            position: relative; padding-top: 100%; /* aspect-ratio 1:1 */
+            background: var(--surface2); border-radius: 6px;
+            overflow: hidden; cursor: pointer;
+            border: 1px solid var(--border);
+        }
+        .foto-thumb img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .foto-thumb .del {
+            position: absolute; top: 2px; right: 2px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: rgba(0,0,0,0.6); color: #fff;
+            border: none; font-size: 14px; line-height: 1;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .foto-thumb .legenda {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: #fff; padding: 3px 5px;
+            font-size: 9px; text-align: center;
+            text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+        }
+        .foto-add-btn {
+            position: relative; padding-top: 100%;
+            background: var(--primary-light); border: 2px dashed var(--primary);
+            border-radius: 6px; cursor: pointer;
+            display: block; text-align: center;
+            color: var(--primary); font-weight: 700;
+        }
+        .foto-add-btn::after {
+            content: '+ Foto'; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 11px; white-space: nowrap;
+        }
+        .foto-add-btn input { display: none; }
+
+        /* Modal de visualização da foto */
+        #foto-modal {
+            position: fixed; inset: 0; z-index: 4000;
+            background: rgba(0,0,0,0.85);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        #foto-modal.show { display: flex; }
+        #foto-modal img {
+            max-width: 100%; max-height: 80vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        #foto-modal .modal-content {
+            position: relative; max-width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        #foto-modal .info {
+            color: #fff; font-size: 12px; max-width: 600px;
+            background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 6px;
+            text-align: center;
+        }
+        #foto-modal .info .legenda-edit {
+            width: 100%; margin-top: 6px; padding: 6px 8px;
+            background: rgba(255,255,255,0.1); color: #fff;
+            border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;
+            font-size: 12px;
+        }
+        #foto-modal .close-btn {
+            position: absolute; top: -36px; right: 0;
+            background: transparent; color: #fff; border: none;
+            font-size: 28px; cursor: pointer; padding: 4px 12px;
+        }
+        #foto-modal .nav-arrows {
+            display: flex; gap: 12px; margin-top: 4px;
+        }
+        #foto-modal .nav-arrows button {
+            background: rgba(255,255,255,0.2); color: #fff;
+            border: none; padding: 6px 14px; border-radius: 6px;
+            font-size: 12px; cursor: pointer; font-weight: 700;
+        }
+        #foto-modal .nav-arrows button:disabled {
+            opacity: 0.3; cursor: not-allowed;
+        }
+        .foto-loading {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid var(--surface2); border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            vertical-align: middle; margin-right: 4px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* [MELHORIA v2.5] Componentes do modo offline */
+        .btn-secondary { background: var(--surface2) !important; color: var(--text) !important; border: 1px solid var(--border) !important; }
+        .offline-section {
+            background: var(--surface); border-radius: 10px; padding: 12px;
+            margin-bottom: 12px; border-left: 4px solid var(--primary);
+        }
+        .offline-section.cached { border-left-color: var(--success); }
+        .offline-stats {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+            font-size: 11px; margin: 10px 0; padding: 8px;
+            background: var(--surface2); border-radius: 6px;
+        }
+        .offline-stats .lbl { color: var(--text2); font-size: 9px; text-transform: uppercase; }
+        .offline-stats .val { font-weight: 800; color: var(--primary); font-size: 14px; }
+        .offline-progress-wrap {
+            margin-top: 8px; display: none;
+        }
+        .offline-progress-wrap.show { display: block; }
+        .offline-progress-bar {
+            height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden;
+        }
+        .offline-progress-fill {
+            height: 100%; background: var(--success); width: 0%;
+            transition: width 0.2s linear;
+        }
+        .offline-progress-text {
+            font-size: 11px; color: var(--text2); margin-top: 6px;
+            display: flex; justify-content: space-between;
+        }
+        .offline-area-list {
+            max-height: 200px; overflow-y: auto; margin-top: 8px;
+        }
+        .offline-area-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px; background: var(--surface2);
+            border-radius: 6px; margin-bottom: 6px; font-size: 11px;
+        }
+        .offline-area-item .info { flex: 1; min-width: 0; }
+        .offline-area-item .info strong { color: var(--text); }
+        .offline-area-item .info small { color: var(--text2); display: block; }
+        .offline-area-item button {
+            background: var(--danger); color: #fff; border: none;
+            padding: 4px 8px; border-radius: 4px; font-size: 11px;
+            cursor: pointer; font-weight: 700;
+        }
+        .offline-area-item .btn-show {
+            background: var(--primary); margin-right: 4px;
+        }
+        .offline-status-pill {
+            display: inline-block; padding: 3px 8px; border-radius: 12px;
+            font-size: 10px; font-weight: 700; margin-left: 6px;
+        }
+        .offline-status-pill.online { background: #d4edda; color: #155724; }
+        .offline-status-pill.offline { background: #f8d7da; color: #721c24; }
+        .offline-status-pill.cached { background: #d1ecf1; color: #0c5460; }
+        .dark-mode .offline-status-pill.online { background: #1b5e20; color: #c8e6c9; }
+        .dark-mode .offline-status-pill.offline { background: #b71c1c; color: #ffcdd2; }
+        .dark-mode .offline-status-pill.cached { background: #01579b; color: #b3e5fc; }
+        .install-banner {
+            position: fixed; bottom: calc(var(--bottom-nav-h) + 20px); left: 16px; right: 16px;
+            background: var(--primary); color: #fff; padding: 12px 14px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2000; display: none; align-items: center; gap: 12px;
+            font-size: 12px; line-height: 1.4;
+        }
+        .install-banner.show { display: flex; }
+        .install-banner button {
+            background: #fff; color: var(--primary); border: none;
+            padding: 8px 14px; border-radius: 6px; font-weight: 800;
+            font-size: 12px; cursor: pointer; white-space: nowrap;
+        }
+        .install-banner .close-btn {
+            background: transparent; color: #fff; padding: 4px 8px;
+            opacity: 0.7; font-size: 18px;
         }
 
         @media (min-width: 768px) {
@@ -367,7 +632,101 @@
             </div>
         </div>
 
-        <div class="sobre-box"><h4>Sobre</h4><p>Aplicativo desenvolvido para coleta de dados GNSS e cálculo de áreas e distâncias em campo. Utiliza sistemas GNSS multiconstelação (GPS, GLONASS, Galileo e BeiDou), com referência no sistema SIRGAS 2000, incluindo controle de precisão, cálculo de erro médio, <strong>coleta com média ponderada por ponto</strong> (1/accuracy²) com filtro de outliers MAD, <strong>transformação real entre datums via Helmert 3D</strong> com parâmetros oficiais do IBGE (Resolução PR 01/2005), <strong>cálculo geodésico de área e perímetro</strong> diretamente sobre o elipsoide (Vincenty inverso + Karney/Bevis-Cambareri) e <strong>correção geoidal embarcada</strong> para conversão de altitude elipsoidal em ortométrica (grade calibrada com MAPGEO2015/EGM2008, precisão ±3 m). Indicado para uso técnico preliminar e educacional. Não substitui equipamentos geodésicos de alta precisão (RTK) nem o ProGriD / hgeoHNOR2020 do IBGE para georreferenciamento cartorial.</p><p style="margin-top:8px;"><strong>Desenvolvido por:</strong> J. P. Santos<br><strong>Contato:</strong> <a href="mailto:santosjp@uft.edu.br">santosjp@uft.edu.br</a><br><strong>Versão:</strong> 2.4</p></div>
+        <!-- [MELHORIA v2.5] Seção Modo Offline: PWA + cache de mapas -->
+        <div class="config-section" style="border-left: 4px solid #00838f; padding-left: 12px;">
+            <label>📡 Modo Offline — Uso em Campo <span class="info-badge" style="background:#00838f;color:#fff;">Novo</span></label>
+
+            <!-- Status atual da conexão -->
+            <div style="margin: 10px 0; font-size: 12px;">
+                Status:
+                <span id="status-online-pill" class="offline-status-pill online">● Online</span>
+                <span id="status-pwa-pill" class="offline-status-pill" style="display:none;">📱 PWA instalado</span>
+            </div>
+
+            <!-- Subseção PWA -->
+            <div class="offline-section">
+                <strong style="font-size:12px;">📱 Instalar como App</strong>
+                <p style="font-size:11px;color:var(--text2);margin:6px 0;">
+                    Instale o GeoÁrea na tela inicial para usar como app nativo, sem precisar de navegador, e com acesso offline quando estiver hospedado.
+                </p>
+                <div id="pwa-install-status" style="font-size:11px;color:var(--text2);margin: 6px 0;"></div>
+                <button class="btn btn-block btn-sm" id="btn-install-pwa" onclick="instalarPWA()">📥 Instalar na tela inicial</button>
+                <button class="btn btn-block btn-sm btn-secondary" onclick="baixarPacotePWA()" style="margin-top:6px;">⬇️ Baixar arquivos PWA (ZIP para hospedagem)</button>
+            </div>
+
+            <!-- Subseção Cache de Tiles -->
+            <div class="offline-section" id="cache-section">
+                <strong style="font-size:12px;">🗺️ Mapas Offline</strong>
+                <p style="font-size:11px;color:var(--text2);margin:6px 0;">
+                    Baixe tiles do mapa para sua área de trabalho. Os tiles ficam armazenados no aparelho (IndexedDB) e o app os usa automaticamente quando sem sinal de dados.
+                </p>
+
+                <!-- Estatísticas do cache -->
+                <div class="offline-stats">
+                    <div><div class="lbl">Tiles em cache</div><div class="val" id="cache-tile-count">0</div></div>
+                    <div><div class="lbl">Tamanho estimado</div><div class="val" id="cache-size">0 MB</div></div>
+                    <div><div class="lbl">Áreas salvas</div><div class="val" id="cache-area-count">0</div></div>
+                    <div><div class="lbl">Última atualização</div><div class="val" style="font-size:10px;" id="cache-last-update">Nunca</div></div>
+                </div>
+
+                <!-- Configuração do download -->
+                <label style="font-size:11px;margin-top:8px;">Nível de zoom máximo a baixar</label>
+                <select id="cache-zoom-max">
+                    <option value="15">Z15 — visão geral (poucos tiles)</option>
+                    <option value="17" selected>Z17 — talhão / quintal (recomendado)</option>
+                    <option value="18">Z18 — alta precisão (mais tiles)</option>
+                    <option value="19">Z19 — máximo OSM (muitos tiles)</option>
+                </select>
+
+                <label style="font-size:11px;margin-top:8px;">Área a baixar</label>
+                <select id="cache-area-source" onchange="atualizarEstimativaCache()">
+                    <option value="polygon">Polígono atual (com margem)</option>
+                    <option value="view">Visualização atual do mapa</option>
+                    <option value="position">Raio em torno da posição atual</option>
+                </select>
+
+                <div id="cache-radius-container" style="display:none;margin-top:6px;">
+                    <label style="font-size:11px;">Raio (km)</label>
+                    <input type="number" id="cache-radius-km" value="2" min="0.5" max="20" step="0.5" onchange="atualizarEstimativaCache()">
+                </div>
+
+                <!-- Estimativa antes de baixar -->
+                <div id="cache-preview" style="font-size:11px;margin-top:8px;padding:8px;background:var(--primary-light);border-radius:6px;color:var(--text);">
+                    <em>Selecione uma área para ver a estimativa.</em>
+                </div>
+
+                <!-- Progresso do download -->
+                <div class="offline-progress-wrap" id="cache-progress-wrap">
+                    <div class="offline-progress-bar"><div class="offline-progress-fill" id="cache-progress-fill"></div></div>
+                    <div class="offline-progress-text">
+                        <span id="cache-progress-status">Iniciando...</span>
+                        <span id="cache-progress-count">0 / 0</span>
+                    </div>
+                </div>
+
+                <!-- Botões de ação -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+                    <button class="btn btn-sm" onclick="atualizarEstimativaCache()">📊 Estimar</button>
+                    <button class="btn btn-sm" id="btn-baixar-tiles" onclick="baixarTilesOffline()" style="background:var(--success);color:#fff;">⬇️ Baixar</button>
+                </div>
+
+                <!-- Lista de áreas salvas -->
+                <strong style="font-size:11px;display:block;margin-top:12px;">Áreas salvas:</strong>
+                <div class="offline-area-list" id="cache-area-list">
+                    <div style="font-size:11px;color:var(--text2);padding:8px;text-align:center;">
+                        Nenhuma área salva ainda.
+                    </div>
+                </div>
+
+                <button class="btn btn-block btn-sm" onclick="limparTodoCacheTiles()" style="background:var(--danger);color:#fff;margin-top:8px;">🗑️ Limpar todo o cache de mapas</button>
+            </div>
+
+            <div class="datum-warning" style="display:block;background:#e0f2f1;border-color:#00838f;color:#004d40;">
+                <strong>Como funciona:</strong> os tiles são imagens de 256×256 pixels que compõem o mapa. Cada zoom multiplica por 4× a quantidade de tiles. Uma área de 5 km² no zoom 17 tem ~400 tiles (~10 MB). Os tiles ficam no <em>IndexedDB</em> do navegador (não em cache do servidor), funcionando mesmo sem instalar como PWA. Em campo sem sinal: o app verifica primeiro o IndexedDB antes de tentar a rede.
+            </div>
+        </div>
+
+        <div class="sobre-box"><h4>Sobre</h4><p>Aplicativo desenvolvido para coleta de dados GNSS e cálculo de áreas e distâncias em campo. Utiliza sistemas GNSS multiconstelação (GPS, GLONASS, Galileo e BeiDou), com referência no sistema SIRGAS 2000, incluindo controle de precisão, cálculo de erro médio, <strong>coleta com média ponderada por ponto</strong> (1/accuracy²) com filtro de outliers MAD, <strong>transformação real entre datums via Helmert 3D</strong> com parâmetros oficiais do IBGE (Resolução PR 01/2005), <strong>cálculo geodésico de área e perímetro</strong> diretamente sobre o elipsoide (Vincenty inverso + Karney/Bevis-Cambareri), <strong>correção geoidal embarcada</strong> para conversão de altitude elipsoidal em ortométrica (grade calibrada com MAPGEO2015/EGM2008, precisão ±3 m), <strong>modo offline com cache de mapas</strong> (PWA + IndexedDB) para uso em campo sem sinal de dados, <strong>fotos georreferenciadas por ponto</strong> (compressão automática, embedadas no KML) para documentação de campo e <strong>memorial descritivo automático</strong> no padrão NTGIR/INCRA com descrição narrativa, tabela de vértices e dados do responsável técnico. Indicado para uso técnico preliminar e educacional. Não substitui equipamentos geodésicos de alta precisão (RTK) nem o ProGriD / hgeoHNOR2020 do IBGE para georreferenciamento cartorial.</p><p style="margin-top:8px;"><strong>Desenvolvido por:</strong> J. P. Santos<br><strong>Contato:</strong> <a href="mailto:santosjp@uft.edu.br">santosjp@uft.edu.br</a><br><strong>Versão:</strong> 2.7</p></div>
     </div>
 
     <!-- Aba Ferramentas -->
@@ -376,6 +735,89 @@
         <div class="tool-section"><label>Distância e Azimute entre Pontos</label><select id="tool-dist-p1"><option value="">Selecione o ponto 1</option></select><select id="tool-dist-p2"><option value="">Selecione o ponto 2</option></select><button class="btn btn-block btn-sm" onclick="calcularDistanciaAzimute()">Calcular Distância e Azimute</button><div class="tool-result" id="result-dist-azimute" style="display:none;"></div></div>
         <div class="tool-section"><label>Adicionar Ponto por Coordenadas</label><input type="number" id="tool-add-lat" placeholder="Latitude (ex: -15.7801)" step="any"><input type="number" id="tool-add-lng" placeholder="Longitude (ex: -47.9292)" step="any"><input type="number" id="tool-add-alt" placeholder="Altitude (opcional)" step="any"><input type="text" id="tool-add-label" placeholder="Rótulo (opcional)" maxlength="40"><button class="btn btn-block btn-sm" onclick="adicionarPontoManual()">Adicionar Ponto</button></div>
         <div class="tool-section"><label>Informações do Ponto</label><select id="tool-info-ponto" onchange="exibirInfoPonto()"><option value="">Selecione um ponto</option></select><div class="tool-result" id="result-info-ponto" style="display:none;"></div></div>
+
+        <!-- [MELHORIA v2.7] Memorial Descritivo -->
+        <div class="memorial-section">
+            <label style="font-weight:800;font-size:13px;">📜 Memorial Descritivo <span class="info-badge" style="background:#5e35b1;color:#fff;">Novo</span></label>
+            <p style="font-size:11px;color:var(--text2);margin:6px 0;">
+                Gera o memorial descritivo no padrão técnico (NTGIR/INCRA, adaptável a registro de imóveis urbanos e usucapião) com base nos pontos coletados. Os cálculos de azimute e distância usam geodésica sobre o elipsoide (Vincenty).
+            </p>
+
+            <strong style="font-size:11px;display:block;margin-top:8px;">Dados do Imóvel</strong>
+            <div class="memorial-form-grid">
+                <div class="full">
+                    <label>Denominação / Imóvel</label>
+                    <input type="text" id="mem-imovel" placeholder="Ex: Fazenda Boa Vista / Lote 12 da Quadra 5" oninput="salvarMemorialMeta()">
+                </div>
+                <div class="full">
+                    <label>Proprietário</label>
+                    <input type="text" id="mem-proprietario" placeholder="Nome completo ou Razão Social" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Município</label>
+                    <input type="text" id="mem-municipio" placeholder="Ex: Gurupi" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>UF</label>
+                    <input type="text" id="mem-uf" placeholder="TO" maxlength="2" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Matrícula</label>
+                    <input type="text" id="mem-matricula" placeholder="Nº da matrícula" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Cartório / Reg. Imobiliário</label>
+                    <input type="text" id="mem-registro" placeholder="Ex: 1º RI de Gurupi" oninput="salvarMemorialMeta()">
+                </div>
+            </div>
+
+            <strong style="font-size:11px;display:block;margin-top:8px;">Responsável Técnico</strong>
+            <div class="memorial-form-grid">
+                <div class="full">
+                    <label>Nome do responsável</label>
+                    <input type="text" id="mem-responsavel" placeholder="Ex: João da Silva, Engº Agrônomo" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Reg. profissional</label>
+                    <input type="text" id="mem-reg-prof" placeholder="CREA/CFTA Nº ..." oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>ART / TRT</label>
+                    <input type="text" id="mem-art" placeholder="Nº ART" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Cód. credenciado INCRA</label>
+                    <input type="text" id="mem-codigo-cred" placeholder="(opcional)" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Local da assinatura</label>
+                    <input type="text" id="mem-local-assinatura" placeholder="Ex: Gurupi/TO" oninput="salvarMemorialMeta()">
+                </div>
+                <div>
+                    <label>Data</label>
+                    <input type="date" id="mem-data-assinatura" oninput="salvarMemorialMeta()">
+                </div>
+            </div>
+
+            <strong style="font-size:11px;display:block;margin-top:12px;">Confrontantes</strong>
+            <p style="font-size:10px;color:var(--text2);margin:4px 0;">
+                Para cada lado da poligonal (a partir do vértice indicado), informe o confrontante. Linhas vazias produzem texto genérico ("área não denominada").
+            </p>
+            <div class="memorial-confront-list" id="mem-confront-list">
+                <p style="font-size:11px;color:var(--text2);padding:8px;text-align:center;">Colete ao menos 3 pontos para configurar confrontantes.</p>
+            </div>
+
+            <button class="btn btn-block btn-sm" onclick="gerarMemorial()" style="background:#5e35b1;color:#fff;margin-top:8px;">📜 Gerar Memorial Descritivo</button>
+
+            <div id="memorial-preview-wrap" style="display:none;margin-top:10px;">
+                <div class="memorial-preview" id="memorial-preview"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+                    <button class="btn btn-sm" onclick="baixarMemorialHTML()">📄 Baixar HTML</button>
+                    <button class="btn btn-sm" onclick="baixarMemorialTXT()">📝 Baixar TXT</button>
+                </div>
+                <button class="btn btn-block btn-sm" onclick="copiarMemorial()" style="margin-top:6px;">📋 Copiar texto</button>
+            </div>
+        </div>
     </div>
 
     <!-- Navegação inferior -->
@@ -388,6 +830,31 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- [MELHORIA v2.5] Banner de instalação PWA -->
+    <div class="install-banner" id="install-banner">
+        <div style="flex:1;">📱 <strong>Instalar GeoÁrea</strong> na tela inicial para usar offline em campo</div>
+        <button id="btn-install">Instalar</button>
+        <button class="close-btn" onclick="dispensarInstalacao()">×</button>
+    </div>
+
+    <!-- [MELHORIA v2.6] Modal de visualização de foto -->
+    <div id="foto-modal" onclick="fecharFotoModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="fecharFotoModal()">×</button>
+            <img id="foto-modal-img" alt="Foto georreferenciada">
+            <div class="info">
+                <div id="foto-modal-titulo">Foto</div>
+                <input type="text" id="foto-modal-legenda" class="legenda-edit" placeholder="Legenda (opcional)" maxlength="80" onblur="salvarLegendaFoto()">
+                <div style="font-size:10px;opacity:0.7;margin-top:6px;" id="foto-modal-meta"></div>
+            </div>
+            <div class="nav-arrows">
+                <button id="foto-prev" onclick="navegarFoto(-1)">◀ Anterior</button>
+                <button onclick="baixarFotoAtual()" style="background:var(--primary);">⬇ Baixar</button>
+                <button id="foto-next" onclick="navegarFoto(1)">Próxima ▶</button>
+            </div>
+        </div>
+    </div>
 
     <!-- [MELHORIA v2.1] Overlay de coleta com média ponderada -->
     <div id="media-overlay">
@@ -537,6 +1004,15 @@
             // [MELHORIA v2.4] Correção geoidal (altitude ortométrica)
             geoideModo: 'auto',        // 'auto' (grade), 'manual' (N fixo), 'off' (sem correção)
             geoideNManual: null,       // valor manual de N (se modo = manual)
+            // [MELHORIA v2.7] Memorial descritivo
+            memorialMeta: {
+                imovel: '', proprietario: '', municipio: '', uf: '',
+                matricula: '', registro_imobiliario: '',
+                responsavel_tecnico: '', registro_profissional: '', art: '',
+                codigo_credenciado: '',
+                local_assinatura: '', data_assinatura: ''
+            },
+            memorialConfrontantes: {}, // mapeado por pontoId: lado a partir desse vértice
         };
 
 
@@ -544,9 +1020,436 @@
         // ============================================
         // Mapa (Leaflet)
         // ============================================
+
+        // ============================================
+        // [MELHORIA v2.5] IndexedDB para cache de tiles do mapa
+        // ============================================
+        // Por que IndexedDB em vez de Cache API do Service Worker:
+        // - Funciona mesmo no modo HTML único (sem servidor)
+        // - Maior capacidade (Cache API tem limites baixos no Safari iOS)
+        // - Permite gerenciar tiles individualmente
+        // - Persistência confiável entre sessões
+        //
+        // Estrutura:
+        // - DB: 'geoarea_tiles_v1'
+        // - Store: 'tiles' (key: layerId:z:x:y, value: { blob, size, savedAt, areaId })
+        // - Store: 'areas' (key: areaId, value: { nome, bounds, zoomMin, zoomMax, tileCount, totalSize, savedAt })
+
+        let tileDB = null;
+        const TILE_DB_NAME = 'geoarea_tiles_v1';
+        const TILE_DB_VERSION = 2; // [v2.6] incrementado para criar store de fotos
+        const TILE_STORE = 'tiles';
+        const AREA_STORE = 'areas';
+        const FOTO_STORE = 'fotos'; // [v2.6] fotos georreferenciadas
+
+        function abrirTileDB() {
+            return new Promise(function(resolve, reject) {
+                if (tileDB) return resolve(tileDB);
+                if (!window.indexedDB) {
+                    return reject(new Error('IndexedDB não suportado'));
+                }
+                const req = indexedDB.open(TILE_DB_NAME, TILE_DB_VERSION);
+                req.onerror = function() { reject(req.error); };
+                req.onupgradeneeded = function(e) {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(TILE_STORE)) {
+                        const store = db.createObjectStore(TILE_STORE, { keyPath: 'key' });
+                        store.createIndex('areaId', 'areaId', { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains(AREA_STORE)) {
+                        db.createObjectStore(AREA_STORE, { keyPath: 'id' });
+                    }
+                    // [v2.6] Store de fotos: cada foto tem ID único, blob, metadados
+                    if (!db.objectStoreNames.contains(FOTO_STORE)) {
+                        const fotoStore = db.createObjectStore(FOTO_STORE, { keyPath: 'id' });
+                        fotoStore.createIndex('pontoId', 'pontoId', { unique: false });
+                        fotoStore.createIndex('projeto', 'projeto', { unique: false });
+                    }
+                };
+                req.onsuccess = function() {
+                    tileDB = req.result;
+                    resolve(tileDB);
+                };
+            });
+        }
+
+        function obterTileDoCache(key) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve, reject) {
+                    const tx = db.transaction(TILE_STORE, 'readonly');
+                    const store = tx.objectStore(TILE_STORE);
+                    const req = store.get(key);
+                    req.onsuccess = function() {
+                        const v = req.result;
+                        resolve(v ? v.blob : null);
+                    };
+                    req.onerror = function() { resolve(null); };
+                });
+            }).catch(function() { return null; });
+        }
+
+        function salvarTileNoCache(key, blob, areaId) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve, reject) {
+                    const tx = db.transaction(TILE_STORE, 'readwrite');
+                    const store = tx.objectStore(TILE_STORE);
+                    const req = store.put({
+                        key: key, blob: blob, size: blob.size,
+                        savedAt: Date.now(), areaId: areaId || 'auto'
+                    });
+                    req.onsuccess = function() { resolve(); };
+                    req.onerror = function() { resolve(); };
+                });
+            }).catch(function() { /* silencioso */ });
+        }
+
+        function contarTilesNoCache() {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(TILE_STORE, 'readonly');
+                    const store = tx.objectStore(TILE_STORE);
+                    const req = store.count();
+                    req.onsuccess = function() { resolve(req.result); };
+                    req.onerror = function() { resolve(0); };
+                });
+            }).catch(function() { return 0; });
+        }
+
+        function calcularTamanhoCache() {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    let total = 0, lastSave = 0;
+                    const tx = db.transaction(TILE_STORE, 'readonly');
+                    const store = tx.objectStore(TILE_STORE);
+                    const req = store.openCursor();
+                    req.onsuccess = function(e) {
+                        const cur = e.target.result;
+                        if (cur) {
+                            total += cur.value.size || 0;
+                            if (cur.value.savedAt > lastSave) lastSave = cur.value.savedAt;
+                            cur.continue();
+                        } else {
+                            resolve({ size: total, lastSave: lastSave });
+                        }
+                    };
+                    req.onerror = function() { resolve({ size: 0, lastSave: 0 }); };
+                });
+            }).catch(function() { return { size: 0, lastSave: 0 }; });
+        }
+
+        function listarAreasSalvas() {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(AREA_STORE, 'readonly');
+                    const store = tx.objectStore(AREA_STORE);
+                    const req = store.getAll();
+                    req.onsuccess = function() { resolve(req.result || []); };
+                    req.onerror = function() { resolve([]); };
+                });
+            }).catch(function() { return []; });
+        }
+
+        function salvarArea(area) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(AREA_STORE, 'readwrite');
+                    const store = tx.objectStore(AREA_STORE);
+                    store.put(area);
+                    tx.oncomplete = function() { resolve(); };
+                });
+            });
+        }
+
+        function removerArea(areaId) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    // Remover registro da área
+                    const tx1 = db.transaction(AREA_STORE, 'readwrite');
+                    tx1.objectStore(AREA_STORE).delete(areaId);
+                    tx1.oncomplete = function() {
+                        // Remover tiles associados
+                        const tx2 = db.transaction(TILE_STORE, 'readwrite');
+                        const store = tx2.objectStore(TILE_STORE);
+                        const index = store.index('areaId');
+                        const req = index.openCursor(IDBKeyRange.only(areaId));
+                        req.onsuccess = function(e) {
+                            const cur = e.target.result;
+                            if (cur) {
+                                cur.delete();
+                                cur.continue();
+                            }
+                        };
+                        tx2.oncomplete = function() { resolve(); };
+                    };
+                });
+            });
+        }
+
+        function limparTodoCache() {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction([TILE_STORE, AREA_STORE], 'readwrite');
+                    tx.objectStore(TILE_STORE).clear();
+                    tx.objectStore(AREA_STORE).clear();
+                    tx.oncomplete = function() { resolve(); };
+                });
+            });
+        }
+
+        // Conversão lat/lng → coordenadas de tile (XYZ tile scheme)
+        function latLngParaTile(lat, lng, z) {
+            const n = Math.pow(2, z);
+            const x = Math.floor((lng + 180) / 360 * n);
+            const latRad = lat * Math.PI / 180;
+            const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * n);
+            return { x: x, y: y };
+        }
+
+        // ============================================
+        // [MELHORIA v2.6] Fotos georreferenciadas — armazenamento IndexedDB
+        // ============================================
+        // Cada foto tem:
+        //   id: string única (foto_<timestamp>_<rand>)
+        //   pontoId: identificador do ponto associado (índice + timestamp do ponto)
+        //   projeto: nome do projeto
+        //   blob: imagem JPEG comprimida
+        //   thumb: thumbnail data URL (gerado uma vez, cacheado)
+        //   legenda: texto curto opcional
+        //   width, height: dimensões finais
+        //   size: tamanho em bytes
+        //   savedAt: timestamp
+
+        function salvarFotoDB(foto) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve, reject) {
+                    const tx = db.transaction(FOTO_STORE, 'readwrite');
+                    tx.objectStore(FOTO_STORE).put(foto);
+                    tx.oncomplete = function() { resolve(foto.id); };
+                    tx.onerror = function() { reject(tx.error); };
+                });
+            });
+        }
+
+        function obterFotoDB(id) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(FOTO_STORE, 'readonly');
+                    const req = tx.objectStore(FOTO_STORE).get(id);
+                    req.onsuccess = function() { resolve(req.result); };
+                    req.onerror = function() { resolve(null); };
+                });
+            }).catch(function() { return null; });
+        }
+
+        function listarFotosDoPonto(pontoId) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(FOTO_STORE, 'readonly');
+                    const index = tx.objectStore(FOTO_STORE).index('pontoId');
+                    const req = index.getAll(pontoId);
+                    req.onsuccess = function() { resolve(req.result || []); };
+                    req.onerror = function() { resolve([]); };
+                });
+            }).catch(function() { return []; });
+        }
+
+        function listarFotosDoProjeto(projeto) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(FOTO_STORE, 'readonly');
+                    const index = tx.objectStore(FOTO_STORE).index('projeto');
+                    const req = index.getAll(projeto);
+                    req.onsuccess = function() { resolve(req.result || []); };
+                    req.onerror = function() { resolve([]); };
+                });
+            }).catch(function() { return []; });
+        }
+
+        function removerFotoDB(id) {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    const tx = db.transaction(FOTO_STORE, 'readwrite');
+                    tx.objectStore(FOTO_STORE).delete(id);
+                    tx.oncomplete = function() { resolve(); };
+                });
+            });
+        }
+
+        function atualizarFotoDB(id, alteracoes) {
+            return obterFotoDB(id).then(function(foto) {
+                if (!foto) return null;
+                Object.assign(foto, alteracoes);
+                return salvarFotoDB(foto);
+            });
+        }
+
+        // Estatísticas globais (para mostrar uso de espaço)
+        function calcularUsoFotos() {
+            return abrirTileDB().then(function(db) {
+                return new Promise(function(resolve) {
+                    let total = 0, count = 0;
+                    const tx = db.transaction(FOTO_STORE, 'readonly');
+                    const req = tx.objectStore(FOTO_STORE).openCursor();
+                    req.onsuccess = function(e) {
+                        const cur = e.target.result;
+                        if (cur) {
+                            total += cur.value.size || 0;
+                            count++;
+                            cur.continue();
+                        } else {
+                            resolve({ size: total, count: count });
+                        }
+                    };
+                    req.onerror = function() { resolve({ size: 0, count: 0 }); };
+                });
+            }).catch(function() { return { size: 0, count: 0 }; });
+        }
+
+        // ============================================
+        // [MELHORIA v2.6] Compressão de imagem antes de salvar
+        // ============================================
+        // Recebe um File (do <input>) e devolve { blob, thumb, width, height, size }
+        // Redimensiona para máx 1600px no maior lado e recomprime em JPEG q=0.75
+        function comprimirImagem(file, maxDim, quality) {
+            maxDim = maxDim || 1600;
+            quality = quality || 0.75;
+            return new Promise(function(resolve, reject) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Calcular novas dimensões mantendo proporção
+                        let w = img.width, h = img.height;
+                        if (w > h && w > maxDim) {
+                            h = Math.round(h * maxDim / w);
+                            w = maxDim;
+                        } else if (h > maxDim) {
+                            w = Math.round(w * maxDim / h);
+                            h = maxDim;
+                        }
+                        // Renderizar no canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+
+                        // Gerar thumbnail (200px no maior lado)
+                        const thumbDim = 200;
+                        let tw = w, th = h;
+                        if (tw > th && tw > thumbDim) { th = Math.round(th * thumbDim / tw); tw = thumbDim; }
+                        else if (th > thumbDim) { tw = Math.round(tw * thumbDim / th); th = thumbDim; }
+                        const tcanvas = document.createElement('canvas');
+                        tcanvas.width = tw; tcanvas.height = th;
+                        tcanvas.getContext('2d').drawImage(img, 0, 0, tw, th);
+                        const thumbUrl = tcanvas.toDataURL('image/jpeg', 0.7);
+
+                        // Gerar blob principal
+                        canvas.toBlob(function(blob) {
+                            if (!blob) {
+                                reject(new Error('Falha ao comprimir imagem'));
+                                return;
+                            }
+                            resolve({
+                                blob: blob,
+                                thumb: thumbUrl,
+                                width: w,
+                                height: h,
+                                size: blob.size,
+                                origSize: file.size,
+                                origName: file.name
+                            });
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = function() { reject(new Error('Imagem inválida')); };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() { reject(new Error('Falha ao ler arquivo')); };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // [MELHORIA v2.5] Camada Leaflet com cache em IndexedDB
+        // Substitui o L.TileLayer padrão por uma versão que:
+        // 1. Primeiro tenta buscar o tile do IndexedDB (rápido, funciona offline)
+        // 2. Se não estiver em cache, busca na rede e armazena para uso futuro
+        // 3. Quando offline e o tile não está em cache, exibe um tile placeholder
+        const OfflineTileLayer = L.TileLayer.extend({
+            createTile: function(coords, done) {
+                const tile = document.createElement('img');
+                tile.alt = '';
+                tile.setAttribute('role', 'presentation');
+                const url = this.getTileUrl(coords);
+                const key = this._cacheKey(coords);
+
+                const self = this;
+                // Tentar IndexedDB primeiro
+                obterTileDoCache(key).then(function(blob) {
+                    if (blob) {
+                        tile.src = URL.createObjectURL(blob);
+                        tile.onload = function() {
+                            URL.revokeObjectURL(tile.src);
+                            done(null, tile);
+                        };
+                        tile.onerror = function() {
+                            // Cache corrompido, tenta da rede
+                            self._loadFromNetwork(tile, url, key, done);
+                        };
+                    } else {
+                        self._loadFromNetwork(tile, url, key, done);
+                    }
+                }).catch(function() {
+                    self._loadFromNetwork(tile, url, key, done);
+                });
+                return tile;
+            },
+            _loadFromNetwork: function(tile, url, key, done) {
+                if (!navigator.onLine) {
+                    // Offline e sem cache: placeholder transparente
+                    tile.src = TILE_PLACEHOLDER;
+                    tile.style.opacity = 0.3;
+                    done(null, tile);
+                    return;
+                }
+                // Buscar via fetch e armazenar no cache
+                fetch(url, { mode: 'cors' }).then(function(resp) {
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    return resp.blob();
+                }).then(function(blob) {
+                    // Armazenar em cache apenas se for um blob válido pequeno
+                    if (blob.size > 100 && blob.size < 200000) {
+                        salvarTileNoCache(key, blob).catch(function(){});
+                    }
+                    tile.src = URL.createObjectURL(blob);
+                    tile.onload = function() {
+                        URL.revokeObjectURL(tile.src);
+                        done(null, tile);
+                    };
+                }).catch(function(err) {
+                    tile.src = TILE_PLACEHOLDER;
+                    tile.style.opacity = 0.3;
+                    done(null, tile);
+                });
+            },
+            _cacheKey: function(coords) {
+                // Chave única por camada+coordenadas
+                return this.options._layerId + ':' + coords.z + ':' + coords.x + ':' + coords.y;
+            }
+        });
+
+        // Tile placeholder transparente (PNG 256x256 com texto "sem cache")
+        const TILE_PLACEHOLDER = 'data:image/svg+xml;base64,' + btoa(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">' +
+            '<rect width="256" height="256" fill="#f0f0f0"/>' +
+            '<text x="128" y="128" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#999">offline</text>' +
+            '</svg>');
+
         const map = L.map('map', { zoomControl: true, center: [-15.78, -47.93], zoom: 16, maxZoom: 22 });
-        const layerStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-        const layerSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20 });
+        const layerStreet = new OfflineTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, _layerId: 'osm', attribution: '© OpenStreetMap'
+        });
+        const layerSatellite = new OfflineTileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20, _layerId: 'esri', attribution: '© Esri'
+        });
         L.control.layers({ Rua: layerStreet, Satélite: layerSatellite }, {}, { position: 'topright', collapsed: true }).addTo(map);
         layerStreet.addTo(map);
         const polygonGroup = L.layerGroup().addTo(map);
@@ -1141,16 +2044,37 @@
                 const metodoBadge = (p.metodo && p.metodo.indexOf('media') === 0)
                     ? '<span style="background:var(--success);color:#fff;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:700;margin-right:4px;" title="Coletado com média ponderada (' + (p.amostras||'?') + ' amostras)">📊' + (p.amostras||'') + '</span>'
                     : '';
+                // [MELHORIA v2.6] Badge de fotos (preenchido async)
+                const fotoBadge = '<span class="foto-badge" id="foto-badge-' + i + '" onclick="abrirGaleriaPonto(' + i + ')" style="display:none;">📷 <span id="foto-count-' + i + '">0</span></span>';
                 const coordText = p.lat.toFixed(6) + ',' + p.lng.toFixed(6) + ' | ' + p.utm_zonaStr + ' ' + p.utm_e.toFixed(1) + ' ' + p.utm_n.toFixed(1) + ' | Prec:' + p.precision.toFixed(1) + 'm';
                 return '<div class="point-item">' +
                     '<span class="idx" onclick="centralizarPonto(' + i + ')">#' + (i+1) + '</span>' +
-                    '<div class="coords">' + labelHtml + metodoBadge + coordText + '</div>' +
+                    '<div class="coords">' + labelHtml + metodoBadge + fotoBadge + coordText + '</div>' +
+                    '<button class="edit-label-btn" onclick="abrirGaleriaPonto(' + i + ')" title="Fotos" style="background:var(--accent);color:#fff;">📷</button>' +
                     '<button class="edit-label-btn" onclick="editarRotulo(' + i + ')" title="Editar rótulo">Aa</button>' +
                     '<button class="btn-sm-icon" onclick="moverPonto(' + i + ',-1)" title="Mover para cima"' + (i===0?' disabled':'') + '>▲</button>' +
                     '<button class="btn-sm-icon" onclick="moverPonto(' + i + ',1)" title="Mover para baixo"' + (i===state.pontos.length-1?' disabled':'') + '>▼</button>' +
                     '<button class="del-btn" onclick="deletarPonto(' + i + ')">×</button>' +
                     '</div>';
             }).join('');
+            // [v2.6] Atualizar badges de fotos async (depois que DOM existe)
+            state.pontos.forEach(function(p, i) {
+                if (!p.pontoId) return;
+                listarFotosDoPonto(p.pontoId).then(function(fotos) {
+                    const badge = $('foto-badge-' + i);
+                    const count = $('foto-count-' + i);
+                    if (badge && count) {
+                        if (fotos.length > 0) {
+                            badge.style.display = 'inline-flex';
+                            count.textContent = fotos.length;
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                });
+            });
+            // [v2.7] Atualizar lista de confrontantes (mudou nº de pontos)
+            atualizarListaConfrontantes();
         }
 
         function escapeHtml(str) {
@@ -1175,9 +2099,12 @@
 
         window.deletarPonto = function(i) {
             mostrarConfirmacao('Excluir Ponto', 'Tem certeza que deseja excluir o ponto #' + (i+1) + (state.pontos[i].label ? ' (' + state.pontos[i].label + ')' : '') + '?', function() {
+                const pontoId = state.pontos[i].pontoId;
                 pushUndo('delete', { index: i, ponto: JSON.parse(JSON.stringify(state.pontos[i])) });
                 state.pontos.splice(i, 1);
                 atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+                // [v2.6] Remover fotos órfãs do ponto deletado
+                if (pontoId) removerFotosDoPonto(pontoId);
                 showToast('Ponto #' + (i+1) + ' removido', 'warn');
             });
         };
@@ -1332,6 +2259,11 @@
         }
 
         // [MELHORIA v2.1] Coleta simples (single-shot, modo legado)
+        // [v2.6] Gerador de ID único para pontos (usado para amarrar fotos)
+        function gerarPontoId() {
+            return 'pt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        }
+
         function coletarPontoSimples() {
             const p = state.currentPos;
             // [v2.2] Gravar coords WGS84 originais (do GPS) e transformar para o datum atual
@@ -1339,6 +2271,7 @@
             // [v2.4] Calcular altitude ortométrica
             const ortRes = altElipsoidalParaOrtometrica(p.lat, p.lng, p.alt);
             state.pontos.push({
+                pontoId: gerarPontoId(), // [v2.6] ID único para amarrar fotos
                 // Lat/lng/alt no datum atual (para exibição/exportação/UTM)
                 lat: transf.lat, lng: transf.lng, alt: transf.h,
                 // Coordenadas WGS84 originais preservadas para retransformações futuras
@@ -1479,6 +2412,7 @@
             // [v2.4] Calcular altitude ortométrica
             const ortRes = altElipsoidalParaOrtometrica(ponto.lat, ponto.lng, ponto.alt);
             state.pontos.push({
+                pontoId: gerarPontoId(), // [v2.6] ID único para fotos
                 lat: transf.lat, lng: transf.lng, alt: transf.h,
                 lat_wgs: ponto.lat, lng_wgs: ponto.lng, alt_wgs: ponto.alt,
                 alt_ortometrica: (ortRes.valido && ortRes.modo !== 'off') ? ortRes.H : null,
@@ -1782,6 +2716,7 @@
             // [v2.4] Calcular altitude ortométrica usando coords WGS84
             const ortRes = altElipsoidalParaOrtometrica(wgs.lat, wgs.lng, wgs.h);
             state.pontos.push({
+                pontoId: gerarPontoId(), // [v2.6] ID único para fotos
                 lat: lat, lng: lng, alt: alt,
                 lat_wgs: wgs.lat, lng_wgs: wgs.lng, alt_wgs: wgs.h,
                 alt_ortometrica: (ortRes.valido && ortRes.modo !== 'off') ? ortRes.H : null,
@@ -1845,6 +2780,8 @@
                 html += '<em>Método: Leitura única</em><br>';
             }
             html += 'Data: ' + new Date(p.timestamp).toLocaleString('pt-BR');
+            // [v2.6] Botão para abrir galeria de fotos do ponto
+            html += '<br><br><button class="btn btn-sm" onclick="abrirGaleriaPonto(' + i + ')" style="background:var(--accent);color:#fff;">📷 Fotos do Ponto</button>';
             r.innerHTML = html;
         }
 
@@ -1859,17 +2796,54 @@
             return { lat: p.lat, lng: p.lng, alt: p.alt || 0 };
         }
 
-        function exportarKML() {
+        // Helper: converter Blob para data URI (usado no KML)
+        function blobParaDataURI(blob) {
+            return new Promise(function(resolve) {
+                const reader = new FileReader();
+                reader.onload = function() { resolve(reader.result); };
+                reader.onerror = function() { resolve(null); };
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function exportarKML() {
             if (state.pontos.length < 3) { showToast('Mínimo 3 pontos para exportar', 'warn'); return; }
+            // [v2.6] Coletar fotos do projeto e mapear por pontoId
+            const todasFotos = await listarFotosDoProjeto(state.projetoNome);
+            const fotosPorPonto = {};
+            for (const f of todasFotos) {
+                if (!fotosPorPonto[f.pontoId]) fotosPorPonto[f.pontoId] = [];
+                fotosPorPonto[f.pontoId].push(f);
+            }
+            const totalFotos = todasFotos.length;
+
             let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
             kml += '<name>' + escapeXml(state.projetoNome) + '</name>\n';
-            kml += '<description>GeoÁrea GNSS v2.2 | Coletado em datum: ' + state.datum + ' | Coordenadas exportadas em WGS84 (padrão OGC KML) | Erro médio: ' + state.erroMedio.toFixed(2) + 'm | Data: ' + new Date().toISOString() + '</description>\n';
+            kml += '<description>GeoÁrea GNSS v2.6 | Coletado em datum: ' + state.datum + ' | Coordenadas exportadas em WGS84 (padrão OGC KML) | Erro médio: ' + state.erroMedio.toFixed(2) + 'm | Fotos: ' + totalFotos + ' | Data: ' + new Date().toISOString() + '</description>\n';
+
             // KML exige WGS84 — usar coordenadas WGS84 originais
-            state.pontos.forEach(function(p, i) {
+            for (let i = 0; i < state.pontos.length; i++) {
+                const p = state.pontos[i];
                 const w = pontoWGS(p);
                 kml += '<Placemark><name>#' + (i+1) + (p.label ? ' - ' + escapeXml(p.label) : '') + '</name>';
+
+                // [v2.6] Embedar fotos do ponto como data URIs no campo description
+                const fotosPonto = fotosPorPonto[p.pontoId] || [];
+                if (fotosPonto.length > 0) {
+                    let desc = '<![CDATA[<p><strong>' + fotosPonto.length + ' foto' + (fotosPonto.length > 1 ? 's' : '') + ' georreferenciada' + (fotosPonto.length > 1 ? 's' : '') + ':</strong></p>';
+                    for (const f of fotosPonto) {
+                        const dataUri = await blobParaDataURI(f.blob);
+                        if (!dataUri) continue;
+                        if (f.legenda) desc += '<p><em>' + escapeXml(f.legenda) + '</em></p>';
+                        desc += '<p><img src="' + dataUri + '" width="400" alt="Foto"/></p>';
+                        desc += '<p><small>' + new Date(f.savedAt).toLocaleString('pt-BR') + ' · ' + f.width + '×' + f.height + ' · ' + (f.size/1024).toFixed(0) + ' KB</small></p>';
+                    }
+                    desc += ']]>';
+                    kml += '<description>' + desc + '</description>';
+                }
                 kml += '<Point><coordinates>' + w.lng + ',' + w.lat + ',' + w.alt + '</coordinates></Point></Placemark>\n';
-            });
+            }
+
             kml += '<Placemark><name>' + escapeXml(state.projetoNome) + ' (Polígono)</name><Polygon><outerBoundaryIs><LinearRing><coordinates>\n';
             state.pontos.forEach(function(p) { const w = pontoWGS(p); kml += w.lng + ',' + w.lat + ',' + w.alt + '\n'; });
             const w0 = pontoWGS(state.pontos[0]);
@@ -1877,7 +2851,13 @@
             kml += '</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n';
             kml += '</Document>\n</kml>';
             download(kml, state.projetoNome + '.kml', 'application/vnd.google-earth.kml+xml');
-            showToast('KML exportado (WGS84)', 'success');
+
+            const sizeMB = (kml.length / (1024*1024)).toFixed(1);
+            if (totalFotos > 0) {
+                showToast('KML exportado com ' + totalFotos + ' fotos embedadas (' + sizeMB + ' MB)', 'success');
+            } else {
+                showToast('KML exportado (WGS84)', 'success');
+            }
         }
 
         function exportarCSV() {
@@ -2157,6 +3137,49 @@
 
             $('relatorio-content').innerHTML = html;
             $('tab-relatorio').style.display = 'block';
+
+            // [v2.6] Seção de documentação fotográfica (async)
+            adicionarSecaoFotos();
+        }
+
+        async function adicionarSecaoFotos() {
+            try {
+                const fotos = await listarFotosDoProjeto(state.projetoNome);
+                if (!fotos.length) return;
+
+                // Agrupar por ponto
+                const porPonto = {};
+                fotos.forEach(function(f) {
+                    if (!porPonto[f.pontoId]) porPonto[f.pontoId] = [];
+                    porPonto[f.pontoId].push(f);
+                });
+
+                let secao = '<hr><p><b>Documentação Fotográfica:</b> ' + fotos.length + ' foto' +
+                    (fotos.length !== 1 ? 's' : '') + ' em ' + Object.keys(porPonto).length +
+                    ' ponto' + (Object.keys(porPonto).length !== 1 ? 's' : '') + '</p>';
+
+                for (let i = 0; i < state.pontos.length; i++) {
+                    const p = state.pontos[i];
+                    const fp = porPonto[p.pontoId] || [];
+                    if (!fp.length) continue;
+                    secao += '<div style="margin:12px 0;padding:8px;background:#f8f8f4;border-radius:6px;">' +
+                        '<strong style="font-size:11px;">Ponto #' + (i+1) +
+                        (p.label ? ' — ' + escapeHtml(p.label) : '') + '</strong>' +
+                        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">';
+                    for (const f of fp) {
+                        secao += '<div style="text-align:center;font-size:9px;">' +
+                            '<img src="' + f.thumb + '" style="width:120px;height:120px;object-fit:cover;border-radius:4px;border:1px solid #ddd;"/>' +
+                            (f.legenda ? '<div style="max-width:120px;margin-top:2px;color:#666;">' + escapeHtml(f.legenda) + '</div>' : '') +
+                            '</div>';
+                    }
+                    secao += '</div></div>';
+                }
+
+                const content = $('relatorio-content');
+                if (content) content.innerHTML += secao;
+            } catch(e) {
+                console.error('Erro ao adicionar fotos ao relatório:', e);
+            }
         }
 
         function baixarRelatorio() {
@@ -2208,6 +3231,7 @@
                 const latWGS = c[1], lngWGS = c[0], altWGS = c[2] || null;
                 const transf = obterCoordenadasNoDatum(latWGS, lngWGS, altWGS);
                 return {
+                    pontoId: gerarPontoId(),
                     lat: transf.lat, lng: transf.lng, alt: transf.h,
                     lat_wgs: latWGS, lng_wgs: lngWGS, alt_wgs: altWGS,
                     precision: 1.0,
@@ -2240,6 +3264,7 @@
             state.pontos = coords.slice(0, -1).map(function(c) {
                 const transf = obterCoordenadasNoDatum(c.lat, c.lng, c.alt);
                 return {
+                    pontoId: gerarPontoId(),
                     lat: transf.lat, lng: transf.lng, alt: transf.h,
                     lat_wgs: c.lat, lng_wgs: c.lng, alt_wgs: c.alt,
                     precision: 1.0,
@@ -2267,6 +3292,7 @@
                     const utm = latLngToUTM(lat, lng, ELIPSOIDES[state.datum] || ELIPSOIDES['SIRGAS2000']);
                     const label = cols.length > 1 && cols[0] ? cols[0].replace(/"/g, '').trim() : '';
                     pts.push({
+                        pontoId: gerarPontoId(),
                         lat: lat, lng: lng, alt: altCol,
                         lat_wgs: wgs.lat, lng_wgs: wgs.lng, alt_wgs: wgs.h,
                         precision: cols[4] ? parseFloat(cols[4]) : 1.0,
@@ -2305,7 +3331,10 @@
                     mediaDescarteOutliers: state.mediaDescarteOutliers,
                     // [MELHORIA v2.4] Configurações de correção geoidal
                     geoideModo: state.geoideModo,
-                    geoideNManual: state.geoideNManual
+                    geoideNManual: state.geoideNManual,
+                    // [MELHORIA v2.7] Memorial descritivo
+                    memorialMeta: state.memorialMeta,
+                    memorialConfrontantes: state.memorialConfrontantes
                 }));
             } catch(e) { /* storage cheio ou indisponível */ }
         }
@@ -2347,6 +3376,8 @@
                             p.alt_wgs = p.alt;
                         }
                         if (p.datum == null) p.datum = 'WGS84'; // pontos antigos eram nominais
+                        // [v2.6] Gerar pontoId para pontos antigos (sem fotos associadas)
+                        if (!p.pontoId) p.pontoId = gerarPontoId();
                     });
                 }
 
@@ -2366,6 +3397,13 @@
                 // [MELHORIA v2.4] Carregar configurações de correção geoidal
                 if (d.geoideModo) state.geoideModo = d.geoideModo;
                 if (d.geoideNManual != null) state.geoideNManual = parseFloat(d.geoideNManual);
+                // [MELHORIA v2.7] Carregar dados do memorial
+                if (d.memorialMeta) {
+                    Object.keys(state.memorialMeta).forEach(function(k) {
+                        if (d.memorialMeta[k] != null) state.memorialMeta[k] = d.memorialMeta[k];
+                    });
+                }
+                if (d.memorialConfrontantes) state.memorialConfrontantes = d.memorialConfrontantes;
 
                 if ($('config-precision-threshold')) $('config-precision-threshold').value = state.precisionThreshold;
                 if ($('config-auto-mode')) $('config-auto-mode').value = state.autoModeType;
@@ -2383,6 +3421,9 @@
                 if ($('config-geoide-manual-container')) {
                     $('config-geoide-manual-container').style.display = (state.geoideModo === 'manual') ? 'block' : 'none';
                 }
+                // [MELHORIA v2.7] Carregar UI do memorial
+                carregarMemorialMetaUI();
+                atualizarListaConfrontantes();
 
                 ['gps','glonass','galileo','beidou'].forEach(function(s) {
                     var el = $('gnss-' + s);
@@ -2750,8 +3791,1172 @@
         // [MELHORIA v2.1] Expor funções de média ponderada
         window.salvarConfigMedia = salvarConfigMedia;
         window.cancelarColetaMedia = cancelarColetaMedia;
-        // [MELHORIA v2.4] Expor função de configuração geoidal
-        window.salvarConfigGeoide = salvarConfigGeoide;
+        // ============================================
+        // [MELHORIA v2.6] Galeria de fotos por ponto
+        // ============================================
+
+        // Estado interno: foto atualmente aberta no modal e índice na galeria
+        let modalFotoAtual = null;
+        let modalGaleria = []; // array de fotos do modal
+        let modalIndice = 0;
+
+        // Abre a galeria de fotos de um ponto (modal compacto sobre o app)
+        async function abrirGaleriaPonto(idxPonto) {
+            const p = state.pontos[idxPonto];
+            if (!p || !p.pontoId) {
+                showToast('Ponto inválido', 'error');
+                return;
+            }
+            const fotos = await listarFotosDoPonto(p.pontoId);
+
+            // Cria/abre um overlay que mostra as miniaturas e botão "+ foto"
+            let overlay = $('galeria-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'galeria-overlay';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,0.7);' +
+                    'display:flex;align-items:center;justify-content:center;padding:20px;';
+                overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+                document.body.appendChild(overlay);
+            }
+            const labelTxt = p.label ? escapeHtml(p.label) : '';
+            overlay.innerHTML =
+                '<div style="background:var(--surface);border-radius:14px;padding:18px;max-width:480px;width:100%;max-height:90vh;overflow:auto;">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+                        '<strong style="font-size:14px;">📷 Fotos do Ponto #' + (idxPonto+1) + (labelTxt ? ' — ' + labelTxt : '') + '</strong>' +
+                        '<button onclick="document.getElementById(&quot;galeria-overlay&quot;).remove()" style="background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>' +
+                    '</div>' +
+                    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">' +
+                        fotos.length + ' foto' + (fotos.length !== 1 ? 's' : '') + '. Toque em uma para ampliar.' +
+                    '</div>' +
+                    '<div class="foto-galeria" id="galeria-conteudo"></div>' +
+                '</div>';
+
+            const cont = $('galeria-conteudo');
+
+            // Botão de adicionar foto
+            const addBtn = document.createElement('label');
+            addBtn.className = 'foto-add-btn';
+            addBtn.innerHTML = '<input type="file" accept="image/*" capture="environment" onchange="capturarFoto(' + idxPonto + ', this)">';
+            cont.appendChild(addBtn);
+
+            // Miniaturas
+            fotos.forEach(function(foto, i) {
+                const div = document.createElement('div');
+                div.className = 'foto-thumb';
+                div.onclick = function(e) {
+                    if (e.target.classList.contains('del')) return;
+                    abrirFotoModal(fotos, i);
+                };
+                const img = document.createElement('img');
+                img.src = foto.thumb;
+                img.alt = foto.legenda || 'Foto';
+                div.appendChild(img);
+
+                if (foto.legenda) {
+                    const leg = document.createElement('div');
+                    leg.className = 'legenda';
+                    leg.textContent = foto.legenda;
+                    div.appendChild(leg);
+                }
+
+                const del = document.createElement('button');
+                del.className = 'del';
+                del.textContent = '×';
+                del.title = 'Remover foto';
+                del.onclick = function(e) {
+                    e.stopPropagation();
+                    removerFotoConfirm(foto.id, idxPonto);
+                };
+                div.appendChild(del);
+
+                cont.appendChild(div);
+            });
+        }
+
+        // Captura nova foto: comprime, salva no DB, atualiza UI
+        async function capturarFoto(idxPonto, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            const p = state.pontos[idxPonto];
+            if (!p || !p.pontoId) {
+                showToast('Ponto inválido', 'error');
+                return;
+            }
+            const cont = $('galeria-conteudo');
+            // Mostrar indicador de carregamento
+            const loading = document.createElement('div');
+            loading.style.cssText = 'grid-column:1/-1;text-align:center;padding:12px;font-size:12px;color:var(--text2);';
+            loading.innerHTML = '<span class="foto-loading"></span> Comprimindo imagem...';
+            if (cont) cont.appendChild(loading);
+
+            try {
+                const result = await comprimirImagem(file, 1600, 0.75);
+                const fotoId = 'foto_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+                await salvarFotoDB({
+                    id: fotoId,
+                    pontoId: p.pontoId,
+                    projeto: state.projetoNome,
+                    blob: result.blob,
+                    thumb: result.thumb,
+                    legenda: '',
+                    width: result.width,
+                    height: result.height,
+                    size: result.size,
+                    origSize: result.origSize,
+                    savedAt: Date.now(),
+                    // Snapshot das coordenadas do ponto no momento da captura
+                    lat: p.lat_wgs != null ? p.lat_wgs : p.lat,
+                    lng: p.lng_wgs != null ? p.lng_wgs : p.lng,
+                    alt: p.alt
+                });
+
+                const reducao = ((1 - result.size / result.origSize) * 100).toFixed(0);
+                showToast('Foto salva (' + (result.size/1024).toFixed(0) + ' KB, −' + reducao + '%)', 'success');
+
+                // Recarregar galeria e lista
+                abrirGaleriaPonto(idxPonto);
+                atualizarLista();
+            } catch(e) {
+                console.error('Erro ao salvar foto:', e);
+                showToast('Erro ao salvar foto: ' + e.message, 'error');
+                if (loading) loading.remove();
+            }
+            // Limpar input para permitir capturar mesma imagem novamente
+            inputEl.value = '';
+        }
+
+        function removerFotoConfirm(fotoId, idxPonto) {
+            mostrarConfirmacao('Remover foto',
+                'Remover esta foto permanentemente?',
+                async function() {
+                    await removerFotoDB(fotoId);
+                    showToast('Foto removida', 'warn');
+                    abrirGaleriaPonto(idxPonto);
+                    atualizarLista();
+                });
+        }
+
+        // Modal de visualização ampliada
+        async function abrirFotoModal(galeria, indice) {
+            modalGaleria = galeria;
+            modalIndice = indice;
+            await mostrarFotoModal();
+            $('foto-modal').classList.add('show');
+        }
+
+        async function mostrarFotoModal() {
+            const foto = modalGaleria[modalIndice];
+            if (!foto) return;
+            modalFotoAtual = foto;
+            // Carregar blob completo
+            const url = URL.createObjectURL(foto.blob);
+            const img = $('foto-modal-img');
+            // Liberar URL anterior se houver
+            if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+            img.src = url;
+            img.dataset.url = url;
+
+            $('foto-modal-titulo').textContent = 'Foto ' + (modalIndice + 1) + ' de ' + modalGaleria.length;
+            $('foto-modal-legenda').value = foto.legenda || '';
+
+            // Meta info
+            const dataStr = new Date(foto.savedAt).toLocaleString('pt-BR');
+            const tamMB = (foto.size / 1024).toFixed(0);
+            const dim = foto.width + ' × ' + foto.height;
+            let coordStr = '';
+            if (foto.lat != null) {
+                coordStr = ' · ' + foto.lat.toFixed(6) + ', ' + foto.lng.toFixed(6);
+            }
+            $('foto-modal-meta').textContent = dataStr + ' · ' + dim + ' · ' + tamMB + ' KB' + coordStr;
+
+            // Habilitar/desabilitar setas
+            $('foto-prev').disabled = (modalIndice <= 0);
+            $('foto-next').disabled = (modalIndice >= modalGaleria.length - 1);
+        }
+
+        function navegarFoto(delta) {
+            const novo = modalIndice + delta;
+            if (novo < 0 || novo >= modalGaleria.length) return;
+            modalIndice = novo;
+            mostrarFotoModal();
+        }
+
+        function fecharFotoModal(e) {
+            if (e && e.target.id !== 'foto-modal' && !e.target.classList.contains('close-btn')) {
+                if (e.target.closest('.modal-content')) return;
+            }
+            $('foto-modal').classList.remove('show');
+            const img = $('foto-modal-img');
+            if (img.dataset.url) {
+                URL.revokeObjectURL(img.dataset.url);
+                delete img.dataset.url;
+            }
+            modalFotoAtual = null;
+        }
+
+        async function salvarLegendaFoto() {
+            if (!modalFotoAtual) return;
+            const novaLegenda = $('foto-modal-legenda').value.trim();
+            if (novaLegenda === modalFotoAtual.legenda) return;
+            await atualizarFotoDB(modalFotoAtual.id, { legenda: novaLegenda });
+            modalFotoAtual.legenda = novaLegenda;
+            // Atualizar na galeria também
+            modalGaleria[modalIndice].legenda = novaLegenda;
+            showToast('Legenda salva', 'success');
+        }
+
+        function baixarFotoAtual() {
+            if (!modalFotoAtual) return;
+            const url = URL.createObjectURL(modalFotoAtual.blob);
+            const a = document.createElement('a');
+            const ptIdx = state.pontos.findIndex(function(p) { return p.pontoId === modalFotoAtual.pontoId; });
+            const nome = state.projetoNome + '_P' + (ptIdx >= 0 ? (ptIdx + 1) : '?') + '_' + Date.now() + '.jpg';
+            a.href = url; a.download = nome;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+        }
+
+        // Quando um ponto é deletado, remover suas fotos
+        async function removerFotosDoPonto(pontoId) {
+            const fotos = await listarFotosDoPonto(pontoId);
+            for (const f of fotos) {
+                await removerFotoDB(f.id);
+            }
+        }
+
+        // ============================================
+        // [MELHORIA v2.5] Cache offline de tiles do mapa
+        // ============================================
+
+        // Calcula bounding box da área a ser baixada conforme a fonte selecionada
+        function obterAreaParaCache() {
+            const fonte = $('cache-area-source') ? $('cache-area-source').value : 'polygon';
+            if (fonte === 'polygon') {
+                if (state.pontos.length < 1) return null;
+                let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+                state.pontos.forEach(function(p) {
+                    const ll = pontoLatLngWGS(p);
+                    if (ll[0] < minLat) minLat = ll[0]; if (ll[0] > maxLat) maxLat = ll[0];
+                    if (ll[1] < minLng) minLng = ll[1]; if (ll[1] > maxLng) maxLng = ll[1];
+                });
+                // Adicionar margem de 20% para visualização
+                const dLat = (maxLat - minLat) * 0.2 || 0.005;
+                const dLng = (maxLng - minLng) * 0.2 || 0.005;
+                return {
+                    south: minLat - dLat, north: maxLat + dLat,
+                    west: minLng - dLng, east: maxLng + dLng,
+                    nome: 'Polígono "' + state.projetoNome + '"'
+                };
+            } else if (fonte === 'view') {
+                const b = map.getBounds();
+                return {
+                    south: b.getSouth(), north: b.getNorth(),
+                    west: b.getWest(), east: b.getEast(),
+                    nome: 'Visualização do mapa'
+                };
+            } else if (fonte === 'position') {
+                if (!state.currentPos) return null;
+                const km = parseFloat($('cache-radius-km').value) || 2;
+                const dLat = km / 111.139;
+                const dLng = km / (111.139 * Math.cos(state.currentPos.lat * Math.PI/180));
+                return {
+                    south: state.currentPos.lat - dLat, north: state.currentPos.lat + dLat,
+                    west: state.currentPos.lng - dLng, east: state.currentPos.lng + dLng,
+                    nome: 'Raio ' + km + 'km da posição'
+                };
+            }
+            return null;
+        }
+
+        // Calcula a lista de tiles necessários para cobrir um bounding box
+        // em um intervalo de zooms
+        function calcularTilesParaArea(area, zoomMin, zoomMax) {
+            const tiles = [];
+            for (let z = zoomMin; z <= zoomMax; z++) {
+                const ne = latLngParaTile(area.north, area.east, z);
+                const sw = latLngParaTile(area.south, area.west, z);
+                const xMin = Math.min(ne.x, sw.x);
+                const xMax = Math.max(ne.x, sw.x);
+                const yMin = Math.min(ne.y, sw.y);
+                const yMax = Math.max(ne.y, sw.y);
+                for (let x = xMin; x <= xMax; x++) {
+                    for (let y = yMin; y <= yMax; y++) {
+                        tiles.push({ z: z, x: x, y: y });
+                    }
+                }
+            }
+            return tiles;
+        }
+
+        // Estimativa: mostra ao usuário quantos tiles serão baixados antes de iniciar
+        function atualizarEstimativaCache() {
+            const fonte = $('cache-area-source').value;
+            $('cache-radius-container').style.display = (fonte === 'position') ? 'block' : 'none';
+
+            const area = obterAreaParaCache();
+            const preview = $('cache-preview');
+            if (!area) {
+                preview.innerHTML = '<em>' + (fonte === 'polygon' ? 'Colete pelo menos um ponto primeiro.' :
+                    fonte === 'position' ? 'Aguardando posição GNSS...' : 'Área inválida.') + '</em>';
+                return;
+            }
+            const zoomMax = parseInt($('cache-zoom-max').value);
+            // Zoom mínimo: 4 níveis abaixo do máximo (visão geral)
+            const zoomMin = Math.max(10, zoomMax - 5);
+            const tiles = calcularTilesParaArea(area, zoomMin, zoomMax);
+            // Estimativa de tamanho: tile OSM médio ≈ 25 KB
+            const estimadoMB = (tiles.length * 25) / 1024;
+            const dimKm = ((area.north - area.south) * 111.139).toFixed(1);
+            const dimLngKm = ((area.east - area.west) * 111.139 * Math.cos((area.north+area.south)/2 * Math.PI/180)).toFixed(1);
+
+            preview.innerHTML =
+                '<strong>Área:</strong> ' + dimKm + ' × ' + dimLngKm + ' km<br>' +
+                '<strong>Zoom:</strong> ' + zoomMin + ' a ' + zoomMax + ' (' + (zoomMax - zoomMin + 1) + ' níveis)<br>' +
+                '<strong>Tiles:</strong> ' + tiles.length.toLocaleString('pt-BR') +
+                ' (≈ ' + estimadoMB.toFixed(1) + ' MB)';
+            if (estimadoMB > 100) {
+                preview.innerHTML += '<br><strong style="color:var(--warning);">⚠️ Volume alto.</strong> Considere reduzir o zoom máximo ou a área.';
+            }
+        }
+
+        // Baixa todos os tiles da área selecionada em paralelo controlado
+        let cacheDownloadCanceled = false;
+
+        async function baixarTilesOffline() {
+            const area = obterAreaParaCache();
+            if (!area) {
+                showToast('Defina uma área válida primeiro', 'warn');
+                return;
+            }
+            if (!navigator.onLine) {
+                showToast('Sem conexão de internet — não é possível baixar tiles', 'error');
+                return;
+            }
+
+            const zoomMax = parseInt($('cache-zoom-max').value);
+            const zoomMin = Math.max(10, zoomMax - 5);
+            const tiles = calcularTilesParaArea(area, zoomMin, zoomMax);
+
+            if (tiles.length > 5000) {
+                if (!confirm('Atenção: serão baixados ' + tiles.length.toLocaleString('pt-BR') +
+                    ' tiles (~' + ((tiles.length * 25)/1024).toFixed(0) + ' MB). Continuar?')) {
+                    return;
+                }
+            }
+
+            const layer = map.hasLayer(layerSatellite) ? layerSatellite : layerStreet;
+            const areaId = 'area_' + Date.now();
+            const wrap = $('cache-progress-wrap');
+            wrap.classList.add('show');
+            $('btn-baixar-tiles').disabled = true;
+            $('btn-baixar-tiles').textContent = '⏸ Cancelar';
+            $('btn-baixar-tiles').onclick = function() { cacheDownloadCanceled = true; };
+
+            cacheDownloadCanceled = false;
+            let baixados = 0, falhas = 0, jaEmCache = 0, tamanhoTotal = 0;
+            const PARALELOS = 4;
+
+            // Função para processar um único tile
+            async function baixarTile(t) {
+                if (cacheDownloadCanceled) return;
+                const key = layer.options._layerId + ':' + t.z + ':' + t.x + ':' + t.y;
+                // Pular se já está em cache
+                const existente = await obterTileDoCache(key);
+                if (existente) {
+                    jaEmCache++;
+                    tamanhoTotal += existente.size || 0;
+                    return;
+                }
+                // Construir URL do tile
+                const subs = ['a', 'b', 'c'];
+                const sub = subs[Math.abs(t.x + t.y) % subs.length];
+                let url = layer._url
+                    .replace('{s}', sub)
+                    .replace('{z}', t.z)
+                    .replace('{x}', t.x)
+                    .replace('{y}', t.y);
+                try {
+                    const resp = await fetch(url, { mode: 'cors' });
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const blob = await resp.blob();
+                    if (blob.size > 100 && blob.size < 200000) {
+                        await salvarTileNoCache(key, blob, areaId);
+                        tamanhoTotal += blob.size;
+                        baixados++;
+                    } else {
+                        falhas++;
+                    }
+                } catch(e) {
+                    falhas++;
+                }
+            }
+
+            // Processar em batches paralelos para não saturar a rede
+            for (let i = 0; i < tiles.length; i += PARALELOS) {
+                if (cacheDownloadCanceled) break;
+                const batch = tiles.slice(i, i + PARALELOS);
+                await Promise.all(batch.map(baixarTile));
+                const processados = Math.min(i + PARALELOS, tiles.length);
+                const pct = (processados / tiles.length) * 100;
+                $('cache-progress-fill').style.width = pct + '%';
+                $('cache-progress-count').textContent = processados + ' / ' + tiles.length;
+                $('cache-progress-status').textContent = baixados + ' baixados, ' + jaEmCache + ' em cache' +
+                    (falhas > 0 ? ', ' + falhas + ' falhas' : '');
+            }
+
+            // Salvar registro da área (apenas se baixou algo novo)
+            if (baixados > 0 && !cacheDownloadCanceled) {
+                await salvarArea({
+                    id: areaId,
+                    nome: area.nome,
+                    bounds: { south: area.south, north: area.north, west: area.west, east: area.east },
+                    zoomMin: zoomMin, zoomMax: zoomMax,
+                    tileCount: baixados + jaEmCache,
+                    totalSize: tamanhoTotal,
+                    layer: layer.options._layerId,
+                    savedAt: Date.now()
+                });
+            }
+
+            // Resetar UI
+            $('btn-baixar-tiles').disabled = false;
+            $('btn-baixar-tiles').textContent = '⬇️ Baixar';
+            $('btn-baixar-tiles').onclick = baixarTilesOffline;
+            setTimeout(function() { wrap.classList.remove('show'); }, 2000);
+
+            const msg = cacheDownloadCanceled
+                ? 'Download cancelado. ' + baixados + ' tiles baixados antes de cancelar.'
+                : baixados + ' tiles baixados, ' + jaEmCache + ' já estavam em cache' +
+                  (falhas > 0 ? ', ' + falhas + ' falhas.' : '.');
+            showToast(msg, cacheDownloadCanceled ? 'warn' : 'success');
+
+            atualizarEstatisticasCache();
+        }
+
+        // Atualiza os contadores e a lista de áreas exibidos na aba Config
+        async function atualizarEstatisticasCache() {
+            try {
+                const [count, info, areas] = await Promise.all([
+                    contarTilesNoCache(),
+                    calcularTamanhoCache(),
+                    listarAreasSalvas()
+                ]);
+                $('cache-tile-count').textContent = count.toLocaleString('pt-BR');
+                $('cache-size').textContent = (info.size / (1024*1024)).toFixed(1) + ' MB';
+                $('cache-area-count').textContent = areas.length;
+                $('cache-last-update').textContent = info.lastSave
+                    ? new Date(info.lastSave).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Nunca';
+
+                // Lista de áreas
+                const lista = $('cache-area-list');
+                if (areas.length === 0) {
+                    lista.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:8px;text-align:center;">Nenhuma área salva ainda.</div>';
+                } else {
+                    areas.sort(function(a, b) { return b.savedAt - a.savedAt; });
+                    lista.innerHTML = areas.map(function(a) {
+                        const dimKm = ((a.bounds.north - a.bounds.south) * 111.139).toFixed(1);
+                        const mb = (a.totalSize / (1024*1024)).toFixed(1);
+                        return '<div class="offline-area-item">' +
+                            '<div class="info"><strong>' + escapeHtml(a.nome) + '</strong>' +
+                            '<small>' + dimKm + ' km · Z' + a.zoomMin + '-' + a.zoomMax + ' · ' +
+                            a.tileCount + ' tiles · ' + mb + ' MB · ' +
+                            new Date(a.savedAt).toLocaleDateString('pt-BR') + '</small></div>' +
+                            '<button class="btn-show" onclick="mostrarAreaCache(\'' + a.id + '\')">Ver</button>' +
+                            '<button onclick="removerAreaCache(\'' + a.id + '\', \'' + escapeHtml(a.nome).replace(/'/g, "\\'") + '\')">×</button>' +
+                            '</div>';
+                    }).join('');
+                }
+            } catch(e) {
+                console.error('Erro ao atualizar stats cache:', e);
+            }
+        }
+
+        // Mostra uma área salva no mapa
+        async function mostrarAreaCache(areaId) {
+            const areas = await listarAreasSalvas();
+            const area = areas.find(function(a) { return a.id === areaId; });
+            if (!area) return;
+            const bounds = L.latLngBounds(
+                [area.bounds.south, area.bounds.west],
+                [area.bounds.north, area.bounds.east]
+            );
+            map.fitBounds(bounds);
+            // Mostrar retângulo temporário
+            const rect = L.rectangle(bounds, { color: '#00838f', weight: 2, fillOpacity: 0.1 }).addTo(map);
+            setTimeout(function() { map.removeLayer(rect); }, 3000);
+            // Mudar para aba mapa
+            document.querySelector('[data-tab="mapa"]').click();
+        }
+
+        async function removerAreaCache(areaId, nome) {
+            mostrarConfirmacao('Remover área',
+                'Remover área "' + nome + '" e todos os seus tiles do cache?',
+                async function() {
+                    await removerArea(areaId);
+                    showToast('Área removida', 'warn');
+                    atualizarEstatisticasCache();
+                });
+        }
+
+        async function limparTodoCacheTiles() {
+            mostrarConfirmacao('Limpar cache de mapas',
+                'Apagar TODOS os tiles e áreas em cache? Esta ação não pode ser desfeita.',
+                async function() {
+                    await limparTodoCache();
+                    showToast('Cache de mapas limpo', 'warn');
+                    atualizarEstatisticasCache();
+                    // Forçar recarregamento dos tiles
+                    layerStreet.redraw();
+                    layerSatellite.redraw();
+                });
+        }
+
+        // ============================================
+        // [MELHORIA v2.5] PWA — Instalação
+        // ============================================
+        let deferredPrompt = null;
+        let pwaInstalado = false;
+
+        // Detectar evento de instalação disponível
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Mostrar banner apenas se não foi dispensado antes
+            if (!localStorage.getItem('pwa_dispensado')) {
+                $('install-banner').classList.add('show');
+            }
+            atualizarStatusPWA();
+        });
+
+        // Detectar quando o app já está instalado (modo standalone)
+        window.addEventListener('appinstalled', function() {
+            pwaInstalado = true;
+            deferredPrompt = null;
+            $('install-banner').classList.remove('show');
+            atualizarStatusPWA();
+            showToast('GeoÁrea instalado! Procure o ícone na tela inicial.', 'success');
+        });
+
+        // Verifica se já está rodando como PWA instalado
+        function estaInstalado() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true;
+        }
+
+        function atualizarStatusPWA() {
+            const pill = $('status-pwa-pill');
+            const statusDiv = $('pwa-install-status');
+            const btn = $('btn-install-pwa');
+            if (estaInstalado()) {
+                pill.style.display = 'inline-block';
+                pill.textContent = '📱 PWA instalado';
+                statusDiv.innerHTML = '✅ <strong>App instalado.</strong> Você está usando o GeoÁrea como aplicativo.';
+                btn.style.display = 'none';
+            } else if (deferredPrompt) {
+                statusDiv.innerHTML = '🔵 Instalação disponível. Toque no botão abaixo para instalar.';
+                btn.style.display = 'block';
+                btn.disabled = false;
+            } else {
+                // Detectar Safari iOS (que não suporta beforeinstallprompt)
+                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    statusDiv.innerHTML = '📱 <strong>iOS:</strong> Toque no botão de compartilhar (⎙) e selecione <em>"Adicionar à Tela de Início"</em>.';
+                    btn.style.display = 'none';
+                } else {
+                    statusDiv.innerHTML = '⚪ Instalação não disponível neste navegador (ou já foi feita). Para tornar o app instalável, hospede os arquivos PWA em um servidor (use o botão "Baixar arquivos PWA").';
+                    btn.style.display = 'none';
+                }
+            }
+        }
+
+        async function instalarPWA() {
+            if (!deferredPrompt) {
+                showToast('Instalação não disponível neste navegador no momento', 'warn');
+                return;
+            }
+            deferredPrompt.prompt();
+            const result = await deferredPrompt.userChoice;
+            if (result.outcome === 'accepted') {
+                showToast('Instalando...', 'success');
+            }
+            deferredPrompt = null;
+            atualizarStatusPWA();
+        }
+
+        function dispensarInstalacao() {
+            $('install-banner').classList.remove('show');
+            localStorage.setItem('pwa_dispensado', '1');
+        }
+
+        // Detectar quando vai online/offline
+        window.addEventListener('online', function() {
+            $('status-online-pill').className = 'offline-status-pill online';
+            $('status-online-pill').textContent = '● Online';
+            showToast('Conectado à internet', 'success');
+        });
+        window.addEventListener('offline', function() {
+            $('status-online-pill').className = 'offline-status-pill offline';
+            $('status-online-pill').textContent = '● Offline';
+            showToast('Sem conexão — usando cache local', 'warn');
+        });
+
+        // Gera arquivos PWA prontos para hospedar em um servidor
+        function baixarPacotePWA() {
+            // Gerar manifest
+            const manifest = {
+                name: 'GeoÁrea GNSS',
+                short_name: 'GeoÁrea',
+                description: 'Coleta GNSS com cálculo geodésico e modo offline',
+                start_url: './index.html',
+                display: 'standalone',
+                orientation: 'portrait',
+                background_color: '#0066cc',
+                theme_color: '#0066cc',
+                icons: [
+                    { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+                    { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }
+                ]
+            };
+
+            // Gerar Service Worker
+            const sw = "// Service Worker do GeoÁrea GNSS v2.5\n" +
+                "const CACHE = 'geoarea-v2-5';\n" +
+                "const CORE = ['./', './index.html', './manifest.webmanifest',\n" +
+                "    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',\n" +
+                "    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];\n" +
+                "self.addEventListener('install', function(e) {\n" +
+                "    e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(CORE); }));\n" +
+                "    self.skipWaiting();\n" +
+                "});\n" +
+                "self.addEventListener('activate', function(e) {\n" +
+                "    e.waitUntil(caches.keys().then(function(keys) {\n" +
+                "        return Promise.all(keys.filter(function(k) { return k !== CACHE; })\n" +
+                "            .map(function(k) { return caches.delete(k); }));\n" +
+                "    }));\n" +
+                "    self.clients.claim();\n" +
+                "});\n" +
+                "self.addEventListener('fetch', function(e) {\n" +
+                "    // Tiles do mapa são tratados pelo app via IndexedDB; deixar passar\n" +
+                "    if (e.request.url.indexOf('tile.openstreetmap.org') > -1 ||\n" +
+                "        e.request.url.indexOf('arcgisonline') > -1) return;\n" +
+                "    e.respondWith(caches.match(e.request).then(function(r) {\n" +
+                "        return r || fetch(e.request).then(function(resp) {\n" +
+                "            if (resp.ok && e.request.method === 'GET') {\n" +
+                "                const clone = resp.clone();\n" +
+                "                caches.open(CACHE).then(function(c) { c.put(e.request, clone); });\n" +
+                "            }\n" +
+                "            return resp;\n" +
+                "        }).catch(function() {\n" +
+                "            if (e.request.mode === 'navigate') return caches.match('./index.html');\n" +
+                "        });\n" +
+                "    }));\n" +
+                "});\n";
+
+            // Gerar script de registro inline para inserir no HTML
+            const registroSW = "<!-- Adicionar antes de </body> no index.html -->\n" +
+                "<script>\n" +
+                "if ('serviceWorker' in navigator) {\n" +
+                "    window.addEventListener('load', function() {\n" +
+                "        navigator.serviceWorker.register('./sw.js').catch(function(err) {\n" +
+                "            console.warn('Service Worker falhou:', err);\n" +
+                "        });\n" +
+                "    });\n" +
+                "}\n" +
+                "</" + "script>\n" +
+                "<!-- Adicionar dentro de <head>: -->\n" +
+                '<link rel="manifest" href="./manifest.webmanifest">\n';
+
+            const instrucoes =
+                "INSTRUÇÕES PARA HOSPEDAGEM DO GEOÁREA COMO PWA\n" +
+                "==============================================\n\n" +
+                "Este pacote contém os arquivos necessários para tornar o GeoÁrea\n" +
+                "instalável como aplicativo (PWA) em iOS, Android e desktop.\n\n" +
+                "ARQUIVOS:\n" +
+                "  - index.html ........... O app (baixe o arquivo principal do GeoÁrea)\n" +
+                "  - manifest.webmanifest . Define o app para o sistema operacional\n" +
+                "  - sw.js ................ Service Worker (cache offline dos recursos)\n" +
+                "  - icon-192.png ......... Ícone para Android (a ser gerado)\n" +
+                "  - icon-512.png ......... Ícone para splash screen (a ser gerado)\n" +
+                "  - INSERIR-NO-HTML.txt .. Snippets para colar no index.html\n\n" +
+                "PASSO A PASSO:\n\n" +
+                "1. Hospede TODOS os arquivos no mesmo diretório de um servidor HTTPS.\n" +
+                "   Opções gratuitas:\n" +
+                "   - GitHub Pages (github.com): crie um repositório, ative Pages\n" +
+                "   - Netlify (netlify.com): arraste a pasta no painel\n" +
+                "   - Vercel, Cloudflare Pages, ou servidor próprio com HTTPS\n\n" +
+                "2. Abra INSERIR-NO-HTML.txt e cole os trechos no index.html nos\n" +
+                "   locais indicados.\n\n" +
+                "3. Gere os ícones PNG (192×192 e 512×512). Pode usar:\n" +
+                "   - https://realfavicongenerator.net (com a logo do app)\n" +
+                "   - O ícone SVG já embutido no <head> do index.html\n\n" +
+                "4. Acesse o URL no navegador (precisa ser HTTPS, exceto localhost).\n" +
+                "   Em desktop Chrome/Edge: aparece ícone ⊕ na barra de endereço.\n" +
+                "   Em Android Chrome: menu → 'Instalar app' ou banner automático.\n" +
+                "   Em iOS Safari: botão Compartilhar → 'Adicionar à Tela de Início'.\n\n" +
+                "5. Pronto! O app fica disponível offline (recursos básicos cacheados\n" +
+                "   pelo Service Worker), e os mapas baixados via IndexedDB.\n\n" +
+                "OBSERVAÇÕES:\n" +
+                "- O Service Worker exige HTTPS (ou localhost para testes).\n" +
+                "- iOS não suporta o banner automático de instalação — o usuário\n" +
+                "  precisa adicionar manualmente pelo botão Compartilhar.\n" +
+                "- O cache de mapas (IndexedDB) funciona INDEPENDENTEMENTE do PWA;\n" +
+                "  está embutido no próprio app.\n\n" +
+                "Versão: 2.5 | GeoÁrea GNSS\n";
+
+            // Baixar cada arquivo
+            const downloads = [
+                { nome: 'manifest.webmanifest', conteudo: JSON.stringify(manifest, null, 2), tipo: 'application/manifest+json' },
+                { nome: 'sw.js', conteudo: sw, tipo: 'application/javascript' },
+                { nome: 'INSERIR-NO-HTML.txt', conteudo: registroSW, tipo: 'text/plain' },
+                { nome: 'LEIA-ME.txt', conteudo: instrucoes, tipo: 'text/plain' }
+            ];
+            downloads.forEach(function(d, i) {
+                setTimeout(function() {
+                    const blob = new Blob([d.conteudo], { type: d.tipo });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = d.nome;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+                }, i * 300);
+            });
+            showToast('Baixando 4 arquivos PWA — veja LEIA-ME.txt', 'success');
+        }
+
+        // Expor funções globalmente
+        window.atualizarEstimativaCache = atualizarEstimativaCache;
+        window.baixarTilesOffline = baixarTilesOffline;
+        window.mostrarAreaCache = mostrarAreaCache;
+        window.removerAreaCache = removerAreaCache;
+        window.limparTodoCacheTiles = limparTodoCacheTiles;
+        window.instalarPWA = instalarPWA;
+        window.dispensarInstalacao = dispensarInstalacao;
+        window.baixarPacotePWA = baixarPacotePWA;
+
+        // ============================================
+        // [MELHORIA v2.7] Memorial Descritivo
+        // ============================================
+        // Gera o memorial descritivo no padrão técnico brasileiro
+        // (NTGIR/INCRA 3ª ed., adaptável a registro urbano e usucapião).
+        //
+        // Estrutura:
+        //  1. Cabeçalho: imóvel, proprietário, município/UF, matrícula
+        //  2. Dados técnicos: área, perímetro, sistema geodésico, projeção
+        //  3. Descrição narrativa: vai vértice a vértice com confrontante,
+        //     azimute em graus/minutos/segundos e distância em metros
+        //  4. Encerramento com fechamento da poligonal e área total
+        //  5. Rodapé com responsável técnico, ART/registro profissional
+
+        // Converte azimute decimal (°) em string DMS no formato 99°44'56"
+        function azimuteDMS(graus) {
+            // Normalizar para [0, 360)
+            graus = ((graus % 360) + 360) % 360;
+            const d = Math.floor(graus);
+            const minTotal = (graus - d) * 60;
+            const m = Math.floor(minTotal);
+            const s = Math.round((minTotal - m) * 60);
+            // Lidar com s = 60 (arredondamento)
+            let dFinal = d, mFinal = m, sFinal = s;
+            if (sFinal === 60) { sFinal = 0; mFinal++; }
+            if (mFinal === 60) { mFinal = 0; dFinal++; }
+            if (dFinal === 360) dFinal = 0;
+            return dFinal + '°' + String(mFinal).padStart(2,'0') + "'" + String(sFinal).padStart(2,'0') + '"';
+        }
+
+        // Formata números no padrão pt-BR (vírgula decimal, ponto de milhar)
+        function fmtNum(n, decimais) {
+            if (n == null || isNaN(n)) return '?';
+            decimais = decimais != null ? decimais : 2;
+            return n.toLocaleString('pt-BR', { minimumFractionDigits: decimais, maximumFractionDigits: decimais });
+        }
+
+        // Persistência dos metadados
+        function salvarMemorialMeta() {
+            const ids = ['imovel','proprietario','municipio','uf','matricula','registro_imobiliario',
+                'responsavel_tecnico','registro_profissional','art','codigo_credenciado',
+                'local_assinatura','data_assinatura'];
+            const map = {
+                imovel: 'mem-imovel', proprietario: 'mem-proprietario',
+                municipio: 'mem-municipio', uf: 'mem-uf',
+                matricula: 'mem-matricula', registro_imobiliario: 'mem-registro',
+                responsavel_tecnico: 'mem-responsavel', registro_profissional: 'mem-reg-prof',
+                art: 'mem-art', codigo_credenciado: 'mem-codigo-cred',
+                local_assinatura: 'mem-local-assinatura', data_assinatura: 'mem-data-assinatura'
+            };
+            ids.forEach(function(k) {
+                const el = $(map[k]);
+                if (el) state.memorialMeta[k] = el.value;
+            });
+            salvar();
+        }
+
+        function carregarMemorialMetaUI() {
+            const map = {
+                imovel: 'mem-imovel', proprietario: 'mem-proprietario',
+                municipio: 'mem-municipio', uf: 'mem-uf',
+                matricula: 'mem-matricula', registro_imobiliario: 'mem-registro',
+                responsavel_tecnico: 'mem-responsavel', registro_profissional: 'mem-reg-prof',
+                art: 'mem-art', codigo_credenciado: 'mem-codigo-cred',
+                local_assinatura: 'mem-local-assinatura', data_assinatura: 'mem-data-assinatura'
+            };
+            Object.keys(map).forEach(function(k) {
+                const el = $(map[k]);
+                if (el && state.memorialMeta[k]) el.value = state.memorialMeta[k];
+            });
+        }
+
+        // Atualiza a lista de confrontantes com base nos pontos atuais
+        function atualizarListaConfrontantes() {
+            const c = $('mem-confront-list');
+            if (!c) return;
+            if (state.pontos.length < 3) {
+                c.innerHTML = '<p style="font-size:11px;color:var(--text2);padding:8px;text-align:center;">Colete ao menos 3 pontos para configurar confrontantes.</p>';
+                return;
+            }
+            // Cada lado é do vértice i para o vértice i+1 (cíclico)
+            let html = '';
+            const n = state.pontos.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                const p = state.pontos[i];
+                const pj = state.pontos[j];
+                const pid = p.pontoId || ('idx_' + i);
+                const valor = state.memorialConfrontantes[pid] || '';
+                const labelI = p.label || ('V' + (i+1));
+                const labelJ = pj.label || ('V' + (j+1));
+                html += '<div class="memorial-confront-item">' +
+                    '<div class="lado">Lado<br><strong>' + escapeHtml(labelI) + '→' + escapeHtml(labelJ) + '</strong></div>' +
+                    '<input type="text" placeholder="Ex: Fazenda do Sr. José; Estrada Vicinal; Córrego dos Veados" ' +
+                    'value="' + escapeHtml(valor) + '" oninput="salvarConfrontante(\'' + pid + '\', this.value)">' +
+                    '</div>';
+            }
+            c.innerHTML = html;
+        }
+
+        function salvarConfrontante(pontoId, valor) {
+            state.memorialConfrontantes[pontoId] = valor;
+            salvar();
+        }
+
+        // Núcleo: gera o memorial descritivo completo
+        function gerarMemorial() {
+            if (state.pontos.length < 3) {
+                showToast('Mínimo 3 pontos para gerar memorial', 'warn');
+                return;
+            }
+            salvarMemorialMeta();
+
+            const meta = state.memorialMeta;
+            const result = calcularAreaPerimetro();
+            const areaM2 = result.area;
+            const areaHa = areaM2 / 10000;
+            const perimetro = result.perimetro;
+
+            // Determinar fuso UTM e meridiano central
+            const fusos = result.fusos.length > 0 ? result.fusos[0] : '';
+            const mc = fusos ? (parseInt(fusos) - 1) * 6 - 180 + 3 : null;
+
+            // Construir descrição narrativa
+            const n = state.pontos.length;
+            let narrativa = '';
+
+            for (let i = 0; i < n; i++) {
+                const p = state.pontos[i];
+                const j = (i + 1) % n;
+                const pj = state.pontos[j];
+
+                const pid = p.pontoId || ('idx_' + i);
+                const confrontante = (state.memorialConfrontantes[pid] || '').trim() ||
+                    'área não denominada';
+
+                // Calcular azimute e distância geodésicos (Vincenty)
+                const latI = p.lat_wgs != null ? p.lat_wgs : p.lat;
+                const lngI = p.lng_wgs != null ? p.lng_wgs : p.lng;
+                const latJ = pj.lat_wgs != null ? pj.lat_wgs : pj.lat;
+                const lngJ = pj.lng_wgs != null ? pj.lng_wgs : pj.lng;
+                const v = vincentyInverso(latI, lngI, latJ, lngJ, ELIPSOIDES['WGS84']);
+                const azimute = v ? v.azi1 : 0;
+                const dist = v ? v.dist : 0;
+
+                const codV1 = p.label || ('V' + (i+1));
+                const codV2 = pj.label || ('V' + (j+1));
+
+                if (i === 0) {
+                    // Primeiro lado: início do perímetro
+                    narrativa += 'Inicia-se a descrição deste perímetro no vértice <strong>' + escapeHtml(codV1) + '</strong>, ' +
+                        'de coordenadas <strong>N=' + fmtNum(p.utm_n, 4) + ' m</strong> e <strong>E=' + fmtNum(p.utm_e, 4) + ' m</strong>; ' +
+                        'deste, segue confrontando com <em>' + escapeHtml(confrontante) + '</em>, com azimute de ' +
+                        '<strong>' + azimuteDMS(azimute) + '</strong> e distância de <strong>' + fmtNum(dist, 2) + ' m</strong>, ' +
+                        'até o vértice <strong>' + escapeHtml(codV2) + '</strong>, ' +
+                        'de coordenadas N=' + fmtNum(pj.utm_n, 4) + ' m e E=' + fmtNum(pj.utm_e, 4) + ' m. ';
+                } else if (i === n - 1) {
+                    // Último lado: fecha o perímetro voltando ao V1
+                    narrativa += 'Do vértice <strong>' + escapeHtml(codV1) + '</strong>, segue confrontando com <em>' +
+                        escapeHtml(confrontante) + '</em>, com azimute de <strong>' + azimuteDMS(azimute) +
+                        '</strong> e distância de <strong>' + fmtNum(dist, 2) + ' m</strong>, ' +
+                        'até o vértice <strong>' + escapeHtml(codV2) + '</strong>, ponto inicial da descrição, ' +
+                        '<strong>fechando o perímetro</strong>. ';
+                } else {
+                    // Lados intermediários
+                    narrativa += 'Do vértice <strong>' + escapeHtml(codV1) + '</strong>, segue confrontando com <em>' +
+                        escapeHtml(confrontante) + '</em>, com azimute de <strong>' + azimuteDMS(azimute) +
+                        '</strong> e distância de <strong>' + fmtNum(dist, 2) + ' m</strong>, ' +
+                        'até o vértice <strong>' + escapeHtml(codV2) + '</strong>, ' +
+                        'de coordenadas N=' + fmtNum(pj.utm_n, 4) + ' m e E=' + fmtNum(pj.utm_e, 4) + ' m. ';
+                }
+            }
+            narrativa += '<br><br>Encerra-se a descrição com uma área total de <strong>' + fmtNum(areaM2, 2) + ' m² (' +
+                fmtNum(areaHa, 4) + ' ha)</strong> e perímetro de <strong>' + fmtNum(perimetro, 2) + ' m</strong>.';
+
+            // Data formatada
+            let dataExtenso = '';
+            if (meta.data_assinatura) {
+                try {
+                    const d = new Date(meta.data_assinatura + 'T12:00:00');
+                    const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+                    dataExtenso = d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+                } catch(e) {}
+            }
+
+            // Montar o HTML completo
+            let html = '<div class="titulo">MEMORIAL DESCRITIVO</div>';
+
+            // Tabela de metadados
+            html += '<table class="meta-table">';
+            html += '<tr><td class="lbl">Imóvel</td><td>' + (escapeHtml(meta.imovel) || '<em>(a preencher)</em>') + '</td></tr>';
+            html += '<tr><td class="lbl">Proprietário</td><td>' + (escapeHtml(meta.proprietario) || '<em>(a preencher)</em>') + '</td></tr>';
+            html += '<tr><td class="lbl">Município/UF</td><td>' + (escapeHtml(meta.municipio) || '?') + (meta.uf ? '/' + escapeHtml(meta.uf) : '') + '</td></tr>';
+            if (meta.matricula) html += '<tr><td class="lbl">Matrícula</td><td>' + escapeHtml(meta.matricula) + (meta.registro_imobiliario ? ' — ' + escapeHtml(meta.registro_imobiliario) : '') + '</td></tr>';
+            html += '<tr><td class="lbl">Área total</td><td><strong>' + fmtNum(areaM2, 2) + ' m² (' + fmtNum(areaHa, 4) + ' ha)</strong></td></tr>';
+            html += '<tr><td class="lbl">Perímetro</td><td>' + fmtNum(perimetro, 2) + ' m</td></tr>';
+            html += '<tr><td class="lbl">Nº de vértices</td><td>' + n + '</td></tr>';
+            html += '<tr><td class="lbl">Sistema geodésico</td><td>' + escapeHtml(state.datum) + '</td></tr>';
+            if (fusos) {
+                html += '<tr><td class="lbl">Projeção UTM</td><td>Zona ' + fusos +
+                    (mc != null ? ' Sul — Meridiano Central ' + mc + '°' : '') + '</td></tr>';
+                if (result.multiFuso) {
+                    html += '<tr><td class="lbl" style="color:var(--danger);">Atenção</td><td><strong>Polígono atravessa fusos UTM ' + result.fusos.join('/') + '.</strong> Coordenadas UTM acima referenciam-se ao fuso de cada vértice. Para registro cartorial, recomenda-se reprojetar todos os vértices em um fuso único (LTM ou TM local).</td></tr>';
+                }
+            }
+            html += '<tr><td class="lbl">Cálculo</td><td>Distâncias e azimutes geodésicos (Vincenty inverso) sobre o elipsoide WGS84/SIRGAS2000. Área e perímetro calculados pelo método de Karney/Bevis-Cambareri.</td></tr>';
+            html += '</table>';
+
+            // Texto narrativo
+            html += '<p style="font-weight:700;margin-top:14px;">DESCRIÇÃO DO PERÍMETRO</p>';
+            html += '<p class="narrativa">' + narrativa + '</p>';
+
+            // Tabela de vértices (apêndice técnico padrão NTGIR)
+            html += '<p style="font-weight:700;margin-top:14px;">TABELA DE VÉRTICES</p>';
+            html += '<table class="meta-table"><tr><td class="lbl">Vértice</td><td class="lbl">N (m)</td><td class="lbl">E (m)</td><td class="lbl">Latitude</td><td class="lbl">Longitude</td>';
+            if (state.pontos.some(function(p){ return p.alt_ortometrica != null; })) {
+                html += '<td class="lbl">H (m)</td>';
+            }
+            html += '<td class="lbl">σ (m)</td></tr>';
+            state.pontos.forEach(function(p, i) {
+                const codV = p.label || ('V' + (i+1));
+                html += '<tr><td><strong>' + escapeHtml(codV) + '</strong></td>' +
+                    '<td>' + fmtNum(p.utm_n, 4) + '</td>' +
+                    '<td>' + fmtNum(p.utm_e, 4) + '</td>' +
+                    '<td>' + p.lat.toFixed(7) + '°</td>' +
+                    '<td>' + p.lng.toFixed(7) + '°</td>';
+                if (state.pontos.some(function(pp){ return pp.alt_ortometrica != null; })) {
+                    html += '<td>' + (p.alt_ortometrica != null ? fmtNum(p.alt_ortometrica, 2) : '-') + '</td>';
+                }
+                html += '<td>' + fmtNum(p.precision, 2) + '</td></tr>';
+            });
+            html += '</table>';
+
+            // Assinatura
+            html += '<div class="assinatura">';
+            if (meta.local_assinatura || dataExtenso) {
+                html += '<p style="text-align:right;margin-top:24px;">' + escapeHtml(meta.local_assinatura || '________________') +
+                    ', ' + (dataExtenso || '____ de __________ de ______') + '.</p>';
+            }
+            html += '<div class="linha-assinatura"></div>';
+            html += '<p><strong>' + (escapeHtml(meta.responsavel_tecnico) || 'Nome do Responsável Técnico') + '</strong></p>';
+            if (meta.registro_profissional) html += '<p>' + escapeHtml(meta.registro_profissional) + '</p>';
+            if (meta.art) html += '<p>ART nº ' + escapeHtml(meta.art) + '</p>';
+            if (meta.codigo_credenciado) html += '<p>Cód. credenciado INCRA: ' + escapeHtml(meta.codigo_credenciado) + '</p>';
+            html += '</div>';
+
+            // Nota técnica final
+            html += '<p style="font-size:9px;color:var(--text2);margin-top:18px;text-align:justify;">' +
+                '<em>Memorial gerado automaticamente pelo GeoÁrea GNSS v2.7. As coordenadas têm precisão posicional estimada compatível com receptores GNSS de smartphone. ' +
+                'Para fins cartoriais (Lei 10.267/2001 e NTGIR INCRA), o memorial deve ser revisado, complementado e assinado por profissional habilitado com ART, ' +
+                'e as coordenadas devem ser obtidas com equipamento geodésico que atenda à precisão posicional estabelecida pela 3ª edição da NTGIR (até 0,50 m para vértices em divisa).</em></p>';
+
+            // Renderizar
+            $('memorial-preview').innerHTML = html;
+            $('memorial-preview-wrap').style.display = 'block';
+            showToast('Memorial gerado!', 'success');
+        }
+
+        // Exportação HTML completo (com estilo embutido para impressão)
+        function baixarMemorialHTML() {
+            const conteudo = $('memorial-preview').innerHTML;
+            if (!conteudo) { showToast('Gere o memorial primeiro', 'warn'); return; }
+            const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+                '<title>Memorial Descritivo - ' + escapeHtml(state.memorialMeta.imovel || state.projetoNome) + '</title>' +
+                '<style>' +
+                'body{font-family:"Times New Roman",serif;max-width:760px;margin:24px auto;padding:24px;line-height:1.6;color:#222;text-align:justify}' +
+                '.titulo{font-weight:800;text-align:center;font-size:18px;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px}' +
+                '.meta-table{width:100%;font-size:11px;margin:10px 0;border-collapse:collapse}' +
+                '.meta-table td{padding:4px 8px;border:1px solid #888}' +
+                '.meta-table .lbl{background:#eef4fb;font-weight:700;width:25%}' +
+                '.narrativa{text-indent:32px;margin:10px 0}' +
+                '.assinatura{margin-top:40px;text-align:center;font-size:12px}' +
+                '.linha-assinatura{border-top:1px solid #222;margin:36px auto 4px;width:280px}' +
+                '@media print { body { margin: 0; max-width: 100%; padding: 16px } }' +
+                '</style></head><body>' + conteudo + '</body></html>';
+            download(html, 'Memorial_' + (state.memorialMeta.imovel || state.projetoNome).replace(/[^\w\-]+/g, '_') + '.html',
+                'text/html;charset=utf-8');
+            showToast('Memorial HTML baixado', 'success');
+        }
+
+        // Exportação TXT (sem formatação, para colar em editor de texto)
+        function baixarMemorialTXT() {
+            const meta = state.memorialMeta;
+            const result = calcularAreaPerimetro();
+            const n = state.pontos.length;
+            if (n < 3) { showToast('Mínimo 3 pontos', 'warn'); return; }
+
+            let txt = 'MEMORIAL DESCRITIVO\n';
+            txt += '====================================================\n\n';
+            txt += 'Imóvel:        ' + (meta.imovel || '(a preencher)') + '\n';
+            txt += 'Proprietário:  ' + (meta.proprietario || '(a preencher)') + '\n';
+            txt += 'Município/UF:  ' + (meta.municipio || '?') + (meta.uf ? '/' + meta.uf : '') + '\n';
+            if (meta.matricula) txt += 'Matrícula:     ' + meta.matricula + (meta.registro_imobiliario ? ' — ' + meta.registro_imobiliario : '') + '\n';
+            txt += '\n';
+            txt += 'Área total:    ' + fmtNum(result.area, 2) + ' m² (' + fmtNum(result.area / 10000, 4) + ' ha)\n';
+            txt += 'Perímetro:     ' + fmtNum(result.perimetro, 2) + ' m\n';
+            txt += 'Nº de vértices: ' + n + '\n';
+            txt += 'Sistema geodésico: ' + state.datum + '\n';
+            if (result.fusos.length > 0) {
+                const mc = (parseInt(result.fusos[0]) - 1) * 6 - 180 + 3;
+                txt += 'Projeção UTM:  Zona ' + result.fusos[0] + ' Sul — Meridiano Central ' + mc + '°\n';
+            }
+            txt += '\n';
+            txt += 'DESCRIÇÃO DO PERÍMETRO\n';
+            txt += '----------------------------------------------------\n\n';
+
+            for (let i = 0; i < n; i++) {
+                const p = state.pontos[i];
+                const j = (i + 1) % n;
+                const pj = state.pontos[j];
+                const pid = p.pontoId || ('idx_' + i);
+                const confrontante = (state.memorialConfrontantes[pid] || '').trim() || 'área não denominada';
+                const latI = p.lat_wgs != null ? p.lat_wgs : p.lat;
+                const lngI = p.lng_wgs != null ? p.lng_wgs : p.lng;
+                const latJ = pj.lat_wgs != null ? pj.lat_wgs : pj.lat;
+                const lngJ = pj.lng_wgs != null ? pj.lng_wgs : pj.lng;
+                const v = vincentyInverso(latI, lngI, latJ, lngJ, ELIPSOIDES['WGS84']);
+                const azStr = azimuteDMS(v ? v.azi1 : 0);
+                const dist = fmtNum(v ? v.dist : 0, 2);
+                const codV1 = p.label || ('V' + (i+1));
+                const codV2 = pj.label || ('V' + (j+1));
+
+                if (i === 0) {
+                    txt += 'Inicia-se a descrição deste perímetro no vértice ' + codV1 + ', de coordenadas N=' +
+                        fmtNum(p.utm_n, 4) + ' m e E=' + fmtNum(p.utm_e, 4) + ' m; deste, segue confrontando com ' +
+                        confrontante + ', com azimute de ' + azStr + ' e distância de ' + dist + ' m, até o vértice ' +
+                        codV2 + ', de coordenadas N=' + fmtNum(pj.utm_n, 4) + ' m e E=' + fmtNum(pj.utm_e, 4) + ' m.\n\n';
+                } else if (i === n - 1) {
+                    txt += 'Do vértice ' + codV1 + ', segue confrontando com ' + confrontante + ', com azimute de ' +
+                        azStr + ' e distância de ' + dist + ' m, até o vértice ' + codV2 +
+                        ', ponto inicial da descrição, FECHANDO O PERÍMETRO.\n\n';
+                } else {
+                    txt += 'Do vértice ' + codV1 + ', segue confrontando com ' + confrontante + ', com azimute de ' +
+                        azStr + ' e distância de ' + dist + ' m, até o vértice ' + codV2 +
+                        ', de coordenadas N=' + fmtNum(pj.utm_n, 4) + ' m e E=' + fmtNum(pj.utm_e, 4) + ' m.\n\n';
+                }
+            }
+            txt += 'Encerra-se a descrição com área total de ' + fmtNum(result.area, 2) + ' m² (' +
+                fmtNum(result.area / 10000, 4) + ' ha) e perímetro de ' + fmtNum(result.perimetro, 2) + ' m.\n\n';
+            txt += '====================================================\n';
+            txt += 'TABELA DE VÉRTICES\n';
+            txt += '----------------------------------------------------\n';
+            txt += 'Vértice'.padEnd(10) + 'N (m)'.padEnd(16) + 'E (m)'.padEnd(16) +
+                'Latitude'.padEnd(16) + 'Longitude'.padEnd(16) + 'σ (m)\n';
+            state.pontos.forEach(function(p, i) {
+                const codV = p.label || ('V' + (i+1));
+                txt += codV.padEnd(10) +
+                    fmtNum(p.utm_n, 4).padEnd(16) +
+                    fmtNum(p.utm_e, 4).padEnd(16) +
+                    p.lat.toFixed(7).padEnd(16) +
+                    p.lng.toFixed(7).padEnd(16) +
+                    fmtNum(p.precision, 2) + '\n';
+            });
+            txt += '\n====================================================\n';
+
+            // Data formatada
+            let dataExt = '';
+            if (meta.data_assinatura) {
+                try {
+                    const d = new Date(meta.data_assinatura + 'T12:00:00');
+                    const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+                    dataExt = d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+                } catch(e) {}
+            }
+            if (meta.local_assinatura || dataExt) {
+                txt += '\n' + (meta.local_assinatura || '________________') + ', ' + (dataExt || '____ de __________ de ______') + '.\n\n';
+            }
+            txt += '\n\n______________________________________\n';
+            txt += (meta.responsavel_tecnico || 'Nome do Responsável Técnico') + '\n';
+            if (meta.registro_profissional) txt += meta.registro_profissional + '\n';
+            if (meta.art) txt += 'ART nº ' + meta.art + '\n';
+            if (meta.codigo_credenciado) txt += 'Cód. credenciado INCRA: ' + meta.codigo_credenciado + '\n';
+            txt += '\n----------------------------------------------------\n';
+            txt += 'Memorial gerado pelo GeoÁrea GNSS v2.7. Documento\n';
+            txt += 'sujeito a revisão por profissional habilitado para\n';
+            txt += 'fins cartoriais (Lei 10.267/2001 — NTGIR INCRA).\n';
+
+            download(txt, 'Memorial_' + (meta.imovel || state.projetoNome).replace(/[^\w\-]+/g, '_') + '.txt',
+                'text/plain;charset=utf-8');
+            showToast('Memorial TXT baixado', 'success');
+        }
+
+        // Copia o texto puro do memorial para a área de transferência
+        function copiarMemorial() {
+            const preview = $('memorial-preview');
+            if (!preview.innerHTML) { showToast('Gere o memorial primeiro', 'warn'); return; }
+            // Extrair texto sem tags
+            const tmp = document.createElement('div');
+            tmp.innerHTML = preview.innerHTML;
+            const texto = tmp.innerText || tmp.textContent || '';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(texto).then(function() {
+                    showToast('Memorial copiado para a área de transferência', 'success');
+                }).catch(function() {
+                    showToast('Falha ao copiar', 'error');
+                });
+            } else {
+                showToast('Navegador não suporta cópia automática. Use o botão Baixar.', 'warn');
+            }
+        }
+
+
+        // [MELHORIA v2.6] Expor funções de fotos georreferenciadas
+        window.abrirGaleriaPonto = abrirGaleriaPonto;
+        window.capturarFoto = capturarFoto;
+        window.removerFotoConfirm = removerFotoConfirm;
+        window.abrirFotoModal = abrirFotoModal;
+        window.fecharFotoModal = fecharFotoModal;
+        window.navegarFoto = navegarFoto;
+        window.salvarLegendaFoto = salvarLegendaFoto;
+        window.baixarFotoAtual = baixarFotoAtual;
+
+        // [MELHORIA v2.7] Expor funções do memorial descritivo
+        window.salvarMemorialMeta = salvarMemorialMeta;
+        window.salvarConfrontante = salvarConfrontante;
+        window.gerarMemorial = gerarMemorial;
+        window.baixarMemorialHTML = baixarMemorialHTML;
+        window.baixarMemorialTXT = baixarMemorialTXT;
+        window.copiarMemorial = copiarMemorial;
 
         // ============================================
         // Inicialização
@@ -2773,6 +4978,29 @@
 
                 // [v2.4] Inicializar info da correção geoidal
                 atualizarInfoGeoide();
+
+                // [v2.5] Inicializar status PWA e estatísticas de cache offline
+                atualizarStatusPWA();
+                atualizarEstatisticasCache();
+                atualizarEstimativaCache();
+
+                // [v2.5] Status online/offline inicial
+                if (!navigator.onLine) {
+                    $('status-online-pill').className = 'offline-status-pill offline';
+                    $('status-online-pill').textContent = '● Offline';
+                }
+
+                // [v2.5] Registrar Service Worker se disponível (apenas quando hospedado)
+                if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+                    // Tentar registrar; falha silenciosa se sw.js não existir (modo HTML único)
+                    navigator.serviceWorker.register('./sw.js').catch(function() {
+                        // Silencioso — esperado quando rodando como HTML único
+                    });
+                }
+
+                // [v2.5] Botão de instalação no banner
+                const btnInstall = $('btn-install');
+                if (btnInstall) btnInstall.addEventListener('click', instalarPWA);
             } catch(e) {
                 console.error('Erro na inicialização:', e);
                 showToast('Erro ao inicializar. Tente limpar os dados do navegador.', 'error');
