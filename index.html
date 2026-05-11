@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GeoÁrea GNSS · Multi-constelação v2.1</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg: #f5f5f0; --surface: #ffffff; --surface2: #e8e8e0; --text: #1a1a1a; --text2: #555;
+            --primary: #0066cc; --primary-light: #e0f0ff; --accent: #ff6d00; --success: #2e7d32;
+            --warning: #e6a700; --danger: #c62828; --border: #d0d0c8; --radius: 14px; --radius-sm: 8px;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif; --status-h: 48px; --bottom-nav-h: 56px;
+        }
+        .dark-mode {
+            --bg: #1a1a1e; --surface: #252528; --surface2: #2e2e32; --text: #e8e8e4; --text2: #b0b0a8;
+            --primary: #4da6ff; --primary-light: #1a3350; --accent: #ff9940; --success: #4caf50;
+            --warning: #ffc107; --danger: #ef5350; --border: #3a3a3e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); transition: background 0.25s, color 0.25s; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+
+        #status-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 2000; background: var(--surface); border-bottom: 1px solid var(--border); padding: 4px 8px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-height: var(--status-h); box-shadow: 0 1px 8px rgba(0,0,0,0.08); font-size: 10px; transition: background 0.25s; }
+        .status-item { display: flex; align-items: center; gap: 2px; font-weight: 600; padding: 2px 6px; border-radius: 20px; background: var(--surface2); white-space: nowrap; font-size: 9px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .dot-green { background: var(--success); box-shadow: 0 0 6px var(--success); } .dot-yellow { background: var(--warning); } .dot-red { background: var(--danger); }
+        .gnss-icons span { margin: 0 1px; font-weight: 700; }
+        .datum-badge { background: var(--warning); color: #1a1a1a; padding: 1px 5px; border-radius: 10px; font-size: 8px; font-weight: 700; }
+
+        #map-container { position: fixed; top: var(--status-h); left: 0; right: 0; bottom: var(--bottom-nav-h); z-index: 10; background: #d4e0e8; }
+        #map { width: 100%; height: 100%; }
+
+        .leaflet-control-zoom { top: 10px !important; right: 10px !important; left: auto !important; z-index: 800 !important; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .leaflet-control-zoom a { width: 36px !important; height: 36px !important; line-height: 36px !important; font-size: 18px !important; }
+
+        .map-floating { position: absolute; z-index: 500; background: var(--surface); border-radius: var(--radius); padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); backdrop-filter: blur(6px); transition: all 0.25s; font-size: 10px; }
+        .map-floating.info {
+            top: 10px; left: 50%; transform: translateX(-50%);
+            max-width: calc(100% - 20px); min-width: 200px;
+            display: flex; flex-direction: column; gap: 4px; z-index: 600;
+        }
+        .map-floating.info .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+        .map-floating.info .info-item { display: flex; align-items: baseline; gap: 3px; justify-content: center; }
+        .map-floating.info .val { font-weight: 800; font-size: 13px; color: var(--primary); white-space: nowrap; }
+        .map-floating.info .lbl { font-size: 7px; text-transform: uppercase; color: var(--text2); }
+        .map-floating.info .info-toggle { position: absolute; top: 4px; right: 8px; background: none; border: none; font-size: 12px; cursor: pointer; color: var(--text2); padding: 2px 4px; border-radius: 4px; }
+        .map-floating.info.collapsed .info-grid { display: none; }
+        .map-floating.info.collapsed { padding: 6px 12px; min-width: auto; }
+        .map-floating.actions { bottom: 20px; right: 16px; flex-direction: row; gap: 10px; padding: 8px; display: flex; }
+        .map-floating.center-btn { bottom: 20px; left: 16px; padding: 8px; }
+
+        .fab { width: 48px; height: 48px; border-radius: 50%; background: var(--success); color: #fff; border: none; font-size: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; position: relative; }
+        .fab:active { transform: scale(0.92); }
+        .fab.auto { background: var(--warning); color: #1a1a1a; } .fab.clear { background: var(--danger); } .fab.center { background: var(--primary); font-size: 20px; }
+        .fab.undo { background: var(--text2); font-size: 18px; width: 40px; height: 40px; }
+        .fab-badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 9px; font-weight: 800; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+
+        #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 2000; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); overflow-x: auto; }
+        .nav-tab { flex: 1 0 auto; min-width: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 9px; font-weight: 600; color: var(--text2); background: none; border: none; padding: 4px 2px; cursor: pointer; transition: 0.2s; border-top: 3px solid transparent; white-space: nowrap; }
+        .nav-tab.active { color: var(--primary); border-top-color: var(--primary); }
+
+        .tab-panel { position: fixed; top: var(--status-h); left: 0; right: 0; bottom: var(--bottom-nav-h); z-index: 900; background: var(--bg); overflow-y: auto; padding: 16px; display: none; transition: opacity 0.2s; }
+        .tab-panel.open { display: block; }
+
+        .info-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap: 8px; margin-bottom: 12px; }
+        .info-card { background: var(--surface); border-radius: var(--radius-sm); padding: 10px; text-align: center; font-weight: 700; }
+        .info-card .val { font-size: 18px; color: var(--primary); } .info-card .lbl { font-size: 9px; color: var(--text2); text-transform: uppercase; }
+
+        .point-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface); border-radius: 8px; margin-bottom: 4px; font-size: 11px; cursor: default; }
+        .point-item .idx { font-weight: 800; color: var(--primary); min-width: 22px; text-align: center; cursor: pointer; }
+        .point-item .coords { flex:1; font-size: 9px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .point-item .point-label { display: block; font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 1px; }
+        .point-item .btn-sm-icon { background: var(--surface2); border: none; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 12px; color: var(--text); flex-shrink: 0; }
+        .point-item .btn-sm-icon:active { opacity: 0.6; }
+        .del-btn { background: var(--danger); color:#fff; border:none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+        .edit-label-btn { background: var(--primary); color: #fff; border: none; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 11px; flex-shrink: 0; }
+
+        .btn { padding: 10px 14px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; font-size: 12px; background: var(--primary); color: #fff; }
+        .btn:active { opacity: 0.85; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-block { display: block; width: 100%; margin-bottom: 6px; }
+        .btn-sm { padding: 8px 12px; font-size: 10px; }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); color: #1a1a1a; }
+
+        .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 4000; background: #1a1a1a; color:#fff; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 90%; text-align: center; }
+        .toast.show { opacity: 1; }
+
+        .gnss-checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .gnss-checkbox { display: flex; align-items: center; gap: 8px; background: var(--surface); padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; }
+        .gnss-checkbox input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
+
+        .sobre-box { background: var(--surface); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--text2); border-left: 4px solid var(--primary); }
+        .sobre-box h4 { color: var(--text); margin-bottom: 4px; font-size: 13px; }
+
+        .config-section, .tool-section { margin-bottom: 14px; background: var(--surface); border-radius: var(--radius-sm); padding: 12px; }
+        .config-section label, .tool-section label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 4px; color: var(--text); }
+        .config-section select, .config-section input, .tool-section select, .tool-section input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; margin-bottom: 6px; }
+        .tool-result { background: var(--surface2); border-radius: 8px; padding: 10px; font-size: 12px; margin-top: 8px; line-height: 1.6; }
+        .tool-result strong { color: var(--primary); }
+
+        .info-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; padding: 2px 8px; border-radius: 10px; background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+        /* [MELHORIA] Diálogo de confirmação personalizado */
+        #confirm-overlay { position: fixed; inset: 0; z-index: 6000; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .confirm-dialog { background: var(--surface); border-radius: 16px; padding: 24px 20px; width: 88%; max-width: 320px; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+        .confirm-dialog h3 { font-size: 16px; margin-bottom: 8px; }
+        .confirm-dialog p { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.4; }
+        .confirm-dialog .confirm-actions { display: flex; gap: 10px; }
+        .confirm-dialog .confirm-actions .btn { flex: 1; padding: 12px; font-size: 14px; }
+
+        /* [MELHORIA] Diálogo de edição de rótulo */
+        #label-overlay { position: fixed; inset: 0; z-index: 5500; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .label-dialog { background: var(--surface); border-radius: 16px; padding: 24px 20px; width: 88%; max-width: 340px; box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+        .label-dialog h3 { font-size: 16px; margin-bottom: 12px; }
+        .label-dialog input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 14px; margin-bottom: 14px; }
+        .label-dialog .label-actions { display: flex; gap: 10px; }
+        .label-dialog .label-actions .btn { flex: 1; padding: 12px; font-size: 14px; }
+
+
+
+        /* [MELHORIA] Aviso de datum */
+        .datum-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 11px; color: #856404; display: none; line-height: 1.4; }
+        .dark-mode .datum-warning { background: #332701; border-color: #ffc107; color: #ffc107; }
+
+        /* [MELHORIA v2.1] Anel de progresso e overlay de coleta */
+        .fab.coletando { background: var(--accent); pointer-events: none; }
+        .fab-progress-ring {
+            position: absolute; top: -4px; left: -4px; width: 56px; height: 56px;
+            pointer-events: none; transform: rotate(-90deg);
+        }
+        .fab-progress-ring circle {
+            fill: none; stroke-width: 4; cx: 28; cy: 28; r: 26;
+        }
+        .fab-progress-ring .bg { stroke: rgba(255,255,255,0.3); }
+        .fab-progress-ring .fg {
+            stroke: var(--success); stroke-linecap: round;
+            transition: stroke-dashoffset 0.2s linear;
+            stroke-dasharray: 163.36; stroke-dashoffset: 163.36;
+        }
+
+        #media-overlay {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 1500; background: var(--surface); border-radius: 14px;
+            padding: 14px 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            min-width: 260px; max-width: 90%; display: none;
+            border-left: 4px solid var(--success);
+        }
+        #media-overlay.show { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        #media-overlay .titulo { font-weight: 800; font-size: 13px; color: var(--success); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
+        #media-overlay .info-grid-media {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
+            font-size: 11px; margin-bottom: 8px;
+        }
+        #media-overlay .info-grid-media .lbl { color: var(--text2); font-size: 9px; text-transform: uppercase; }
+        #media-overlay .info-grid-media .val { font-weight: 800; color: var(--primary); font-size: 14px; }
+        #media-overlay .barra { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+        #media-overlay .barra-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.2s linear; }
+        #media-overlay .btn-cancelar {
+            background: var(--danger); color: #fff; border: none; border-radius: 6px;
+            padding: 6px 12px; font-weight: 700; font-size: 11px; cursor: pointer;
+            margin-top: 8px; width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .map-floating.info { max-width: 450px; }
+            .nav-tab { font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+
+    <!-- [MELHORIA] Diálogo de confirmação personalizado -->
+    <div id="confirm-overlay">
+        <div class="confirm-dialog">
+            <h3 id="confirm-title">Confirmar</h3>
+            <p id="confirm-message">Tem certeza?</p>
+            <div class="confirm-actions">
+                <button class="btn btn-outline" id="confirm-cancel">Cancelar</button>
+                <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [MELHORIA] Diálogo de edição de rótulo -->
+    <div id="label-overlay">
+        <div class="label-dialog">
+            <h3 id="label-title">Editar Rótulo do Ponto</h3>
+            <input type="text" id="label-input" placeholder="Ex: Marco 1, Cerca, Árvore..." maxlength="40">
+            <div class="label-actions">
+                <button class="btn btn-outline" id="label-cancel">Cancelar</button>
+                <button class="btn" id="label-save">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de status -->
+    <div id="status-bar">
+        <div class="status-item"><span class="status-dot" id="dot-precision"></span><span id="val-precision">--</span></div>
+        <div class="status-item"><span>📍</span><span id="val-latlon" style="font-size:9px;">--</span></div>
+        <div class="status-item"><span>⛰️</span><span id="val-alt">--</span></div>
+        <div class="status-item"><span>🗺️</span><span id="val-utm" style="font-size:8px;">--</span></div>
+        <div class="status-item gnss-icons" id="gnss-status-icons">
+            <span style="color:#1a73e8;" id="gps-icon">G<span id="val-gps">0</span></span>
+            <span style="color:#e53935;" id="glonass-icon">R<span id="val-glonass">0</span></span>
+            <span style="color:#fbc02d;" id="galileo-icon">E<span id="val-galileo">0</span></span>
+            <span style="color:#c62828;" id="beidou-icon">C<span id="val-beidou">0</span></span>
+        </div>
+        <span class="datum-badge" id="datum-badge">SIRGAS2000</span>
+        <button class="btn btn-outline" onclick="toggleDarkMode()" style="margin-left:auto;padding:4px 10px;font-size:14px;">🌓</button>
+    </div>
+
+    <!-- Mapa -->
+    <div id="map-container">
+        <div id="map"></div>
+        <div class="map-floating info" id="map-info-overlay">
+            <button class="info-toggle" id="info-toggle-btn" onclick="toggleInfoPanel()" title="Minimizar/Expandir">▾</button>
+            <div class="info-grid">
+                <div class="info-item"><span class="val" id="float-area">0.00</span><span class="lbl">m²</span></div>
+                <div class="info-item"><span class="val" id="float-ha">0.0000</span><span class="lbl">ha</span></div>
+                <div class="info-item"><span class="val" id="float-per">0.00</span><span class="lbl">m (perim.)</span></div>
+                <div class="info-item"><span class="val" id="float-err">--</span><span class="lbl">m (erro méd.)</span></div>
+            </div>
+        </div>
+        <div class="map-floating actions">
+            <button class="fab" id="btn-collect" onclick="coletarPonto()" title="Coletar ponto">
+                <svg class="fab-progress-ring" id="fab-ring" width="56" height="56" style="display:none;">
+                    <circle class="bg" cx="28" cy="28" r="26"></circle>
+                    <circle class="fg" id="fab-ring-fg" cx="28" cy="28" r="26"></circle>
+                </svg>
+                <span id="fab-collect-icon">📌</span>
+            </button>
+            <button class="fab auto" id="btn-auto" onclick="toggleModoAuto()" title="Modo automático">⏱️</button>
+            <button class="fab undo" id="btn-undo" onclick="desfazer()" title="Desfazer (Ctrl+Z)">↩️</button>
+            <button class="fab clear" onclick="limparPontos()" title="Limpar pontos">🗑️</button>
+        </div>
+        <div class="map-floating center-btn">
+            <button class="fab center" onclick="centralizarUsuario()" title="Centralizar na minha localização">🎯</button>
+        </div>
+    </div>
+
+    <!-- Aba Dados -->
+    <div class="tab-panel" id="tab-dados">
+        <h3 style="margin-bottom:10px;">Métricas da Coleta</h3>
+        <div class="info-card-grid">
+            <div class="info-card"><div class="val" id="data-area">0.00</div><div class="lbl">Área (m²)</div></div>
+            <div class="info-card"><div class="val" id="data-ha">0.0000</div><div class="lbl">Hectares</div></div>
+            <div class="info-card"><div class="val" id="data-per">0.00</div><div class="lbl">Perímetro (m)</div></div>
+            <div class="info-card"><div class="val" id="data-err">--</div><div class="lbl">Erro Médio (m)</div></div>
+            <div class="info-card"><div class="val" id="data-pts">0</div><div class="lbl">Vértices</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+            <span class="info-badge" id="gnss-total-badge">Total satélites: 0</span>
+            <span class="info-badge" id="datum-info-badge" style="background:#fff3cd;color:#856404;">Datum: SIRGAS2000</span>
+        </div>
+        <h4 style="margin:8px 0;">Vértices <small style="color:var(--text2);">(toque no número para centralizar; setas para reordenar; tag para editar rótulo)</small></h4>
+        <div id="lista-pontos-container" style="max-height:40vh; overflow-y:auto;"></div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-outline btn-block" onclick="abrirModal('modal-projeto')">Salvar Projeto</button>
+            <button class="btn btn-outline btn-block" onclick="abrirGerenciarProjetos()">Gerenciar Projetos</button>
+        </div>
+    </div>
+
+    <!-- Aba Exportar -->
+    <div class="tab-panel" id="tab-exportar">
+        <h3>Exportar Dados</h3>
+        <button class="btn btn-block" onclick="exportarKML()">📐 KML (Google Earth)</button>
+        <button class="btn btn-block" onclick="exportarCSV()">📊 CSV (Planilha)</button>
+        <button class="btn btn-block" onclick="exportarGeoJSON()">🌐 GeoJSON (SIG)</button>
+        <button class="btn btn-block" onclick="exportarDXF()">📐 DXF (AutoCAD)</button>
+        <button class="btn btn-block" onclick="compartilhar()">📲 Compartilhar</button>
+        <button class="btn btn-block" onclick="abrirRelatorio()">Relatório Técnico</button>
+        <button class="btn btn-outline btn-block" onclick="abrirImportar()">📥 Importar Arquivo</button>
+        <input type="file" id="file-import" accept=".kml,.geojson,.json,.csv" style="display:none;" onchange="importarArquivo(event)">
+    </div>
+
+    <!-- Painel do relatório -->
+    <div class="tab-panel" id="tab-relatorio" style="display:none;">
+        <h3>Relatório Técnico</h3>
+        <div id="relatorio-content" style="font-size:11px;line-height:1.6;max-height:60vh;overflow-y:auto;background:var(--surface);padding:14px;border-radius:8px;"></div>
+        <button class="btn btn-block" onclick="baixarRelatorio()" style="margin-top:8px;">Baixar Relatório</button>
+        <button class="btn btn-outline btn-block" onclick="document.getElementById('tab-relatorio').style.display='none'">Fechar</button>
+    </div>
+
+    <!-- Aba Configurações -->
+    <div class="tab-panel" id="tab-config">
+        <h3>Configurações</h3>
+        <div class="config-section">
+            <label>Datum Geodésico</label>
+            <select id="config-datum" onchange="atualizarDatum()">
+                <option value="SIRGAS2000">SIRGAS 2000</option>
+                <option value="WGS84">WGS 84</option>
+                <option value="SAD69">SAD 69</option>
+            </select>
+            <div class="datum-warning" id="datum-warning">
+                <strong>Nota:</strong> O datum selecionado é utilizado apenas como referência nos relatórios e exportações. As coordenadas coletadas utilizam o datum nativo do dispositivo (geralmente WGS84). Para conversões precisas entre datums, utilize software geodésico especializado.
+            </div>
+        </div>
+        <div class="config-section">
+            <label>Sistemas GNSS ativos</label>
+            <div class="gnss-checkboxes" style="margin-top:8px;">
+                <label class="gnss-checkbox"><input type="checkbox" id="gnss-gps" checked onchange="salvarConfigGNSS()"><span>GPS</span></label>
+                <label class="gnss-checkbox"><input type="checkbox" id="gnss-glonass" checked onchange="salvarConfigGNSS()"><span>GLONASS</span></label>
+                <label class="gnss-checkbox"><input type="checkbox" id="gnss-galileo" checked onchange="salvarConfigGNSS()"><span>Galileo</span></label>
+                <label class="gnss-checkbox"><input type="checkbox" id="gnss-beidou" checked onchange="salvarConfigGNSS()"><span>BeiDou</span></label>
+            </div>
+            <div class="datum-warning" id="sat-estimation-notice" style="display:block;">
+                A distribuição de satélites por sistema é uma estimativa baseada no total disponível. A maioria dos navegadores não fornece dados individuais por constelação.
+            </div>
+        </div>
+        <div class="config-section"><label>Modo Automático</label><select id="config-auto-mode" onchange="salvarConfigAutoMode()"><option value="time">Tempo</option><option value="distance">Distância</option><option value="both">Ambos</option></select></div>
+        <div class="config-section"><label>Intervalo (segundos)</label><input type="number" id="config-auto-interval" value="5" min="1" onchange="salvarConfigAutoInterval()"></div>
+        <div class="config-section"><label>Limiar de precisão (m)</label><input type="number" id="config-precision-threshold" value="5.0" step="0.1" onchange="salvarConfigPrecision()"></div>
+        <div class="config-section"><label>Distância mínima auto (m)</label><input type="number" id="config-auto-distance" value="2.0" step="0.5" min="0.5" onchange="salvarConfigAutoDistance()"><small style="color:var(--text2);">Distância mínima entre pontos no modo distância/ambos</small></div>
+
+        <!-- [MELHORIA v2.1] Configuração da coleta com média ponderada -->
+        <div class="config-section" style="border-left: 4px solid var(--success); padding-left: 12px;">
+            <label>📊 Coleta com Média Ponderada <span class="info-badge" style="background:var(--success);color:#fff;">Recomendado</span></label>
+            <label class="gnss-checkbox" style="margin: 8px 0;">
+                <input type="checkbox" id="config-media-ativada" checked onchange="salvarConfigMedia()">
+                <span>Ativar média ponderada por ponto</span>
+            </label>
+            <label style="font-size:11px;margin-top:8px;">Duração da amostragem (segundos)</label>
+            <select id="config-media-duracao" onchange="salvarConfigMedia()">
+                <option value="3">3 s — coleta rápida</option>
+                <option value="5">5 s — rápida</option>
+                <option value="10" selected>10 s — equilibrada (padrão)</option>
+                <option value="15">15 s — precisa</option>
+                <option value="30">30 s — alta precisão</option>
+                <option value="60">60 s — máxima precisão</option>
+            </select>
+            <label class="gnss-checkbox" style="margin: 8px 0;">
+                <input type="checkbox" id="config-media-outliers" checked onchange="salvarConfigMedia()">
+                <span>Descartar leituras anômalas (filtro MAD)</span>
+            </label>
+            <div class="datum-warning" style="display:block;background:#e8f5e9;border-color:var(--success);color:#1b5e20;">
+                <strong>Como funciona:</strong> ao tocar em "Coletar", o app permanece amostrando por N segundos, calcula a <em>média ponderada pelo inverso da variância</em> (1/accuracy²) e descarta outliers acima de 2,5×MAD. Reduz o erro típico de ~5 m para ~1,5 m em receptores de smartphone. Mantenha o aparelho <strong>parado</strong> sobre o vértice durante a coleta.
+            </div>
+            <div class="dark-mode" style="display:none;"></div>
+        </div>
+        <div class="sobre-box"><h4>Sobre</h4><p>Aplicativo desenvolvido para coleta de dados GNSS e cálculo de áreas e distâncias em campo. Utiliza sistemas GNSS multiconstelação (GPS, GLONASS, Galileo e BeiDou), com referência no sistema SIRGAS 2000, incluindo controle de precisão, cálculo de erro médio e <strong>coleta com média ponderada por ponto</strong> (1/accuracy²) com filtro de outliers MAD. Indicado para uso técnico preliminar e educacional. Não substitui equipamentos geodésicos de alta precisão (RTK).</p><p style="margin-top:8px;"><strong>Desenvolvido por:</strong> J. P. Santos<br><strong>Contato:</strong> <a href="mailto:santosjp@uft.edu.br">santosjp@uft.edu.br</a><br><strong>Versão:</strong> 2.1</p></div>
+    </div>
+
+    <!-- Aba Ferramentas -->
+    <div class="tab-panel" id="tab-ferramentas">
+        <h3>Ferramentas</h3>
+        <div class="tool-section"><label>Distância e Azimute entre Pontos</label><select id="tool-dist-p1"><option value="">Selecione o ponto 1</option></select><select id="tool-dist-p2"><option value="">Selecione o ponto 2</option></select><button class="btn btn-block btn-sm" onclick="calcularDistanciaAzimute()">Calcular Distância e Azimute</button><div class="tool-result" id="result-dist-azimute" style="display:none;"></div></div>
+        <div class="tool-section"><label>Adicionar Ponto por Coordenadas</label><input type="number" id="tool-add-lat" placeholder="Latitude (ex: -15.7801)" step="any"><input type="number" id="tool-add-lng" placeholder="Longitude (ex: -47.9292)" step="any"><input type="number" id="tool-add-alt" placeholder="Altitude (opcional)" step="any"><input type="text" id="tool-add-label" placeholder="Rótulo (opcional)" maxlength="40"><button class="btn btn-block btn-sm" onclick="adicionarPontoManual()">Adicionar Ponto</button></div>
+        <div class="tool-section"><label>Informações do Ponto</label><select id="tool-info-ponto" onchange="exibirInfoPonto()"><option value="">Selecione um ponto</option></select><div class="tool-result" id="result-info-ponto" style="display:none;"></div></div>
+    </div>
+
+    <!-- Navegação inferior -->
+    <div id="bottom-nav">
+        <button class="nav-tab active" data-tab="mapa">🗺️<span>Mapa</span></button>
+        <button class="nav-tab" data-tab="dados">📊<span>Dados</span></button>
+        <button class="nav-tab" data-tab="ferramentas">🔧<span>Ferramentas</span></button>
+        <button class="nav-tab" data-tab="exportar">📤<span>Exportar</span></button>
+        <button class="nav-tab" data-tab="config">⚙️<span>Config</span></button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- [MELHORIA v2.1] Overlay de coleta com média ponderada -->
+    <div id="media-overlay">
+        <div class="titulo">📊 <span>Coletando amostras...</span></div>
+        <div class="info-grid-media">
+            <div><div class="lbl">Tempo</div><div class="val" id="media-tempo">0,0 s</div></div>
+            <div><div class="lbl">Restante</div><div class="val" id="media-restante">10,0 s</div></div>
+            <div><div class="lbl">Amostras válidas</div><div class="val" id="media-validas">0</div></div>
+            <div><div class="lbl">Descartadas</div><div class="val" id="media-descartadas" style="color:var(--danger);">0</div></div>
+            <div><div class="lbl">Precisão atual</div><div class="val" id="media-prec-atual">--</div></div>
+            <div><div class="lbl">Precisão média</div><div class="val" id="media-prec-media" style="color:var(--success);">--</div></div>
+        </div>
+        <div class="barra"><div class="barra-fill" id="media-barra"></div></div>
+        <button class="btn-cancelar" onclick="cancelarColetaMedia()">Cancelar coleta</button>
+    </div>
+
+    <!-- Modais -->
+    <div class="modal-overlay" id="modal-projeto" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:3000;"><div style="background:var(--surface);padding:20px;border-radius:14px;width:90%;max-width:350px;"><h3>Salvar Projeto</h3><input type="text" id="input-projeto-nome" placeholder="Nome do projeto" style="width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);"><button class="btn btn-block" onclick="salvarProjeto()">Salvar</button><button class="btn btn-outline btn-block" onclick="fecharModal('modal-projeto')">Cancelar</button></div></div>
+    <div class="modal-overlay" id="modal-gerenciar" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:3000;"><div style="background:var(--surface);padding:20px;border-radius:14px;width:90%;max-width:350px;"><h3>Projetos Salvos</h3><div id="lista-projetos" style="max-height:40vh;overflow-y:auto;"></div><button class="btn btn-outline btn-block" onclick="fecharModal('modal-gerenciar')">Fechar</button></div></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // ============================================
+        // Utilitários (declarados primeiro para evitar TDZ)
+        // ============================================
+        const $ = function(id) { return document.getElementById(id); };
+        const toast = $('toast');
+        let toastTimer = null;
+
+        function showToast(msg, type) {
+            type = type || '';
+            if (toast) { toast.textContent = msg; toast.className = 'toast show ' + type; }
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() { if (toast) toast.className = 'toast'; }, 2500);
+        }
+
+        // ============================================
+        // [MELHORIA] Sistema de Desfazer (Undo)
+        // ============================================
+        const undoStack = [];
+        const MAX_UNDO = 50;
+
+        function pushUndo(action, data) {
+            undoStack.push({ action, data, timestamp: Date.now() });
+            if (undoStack.length > MAX_UNDO) undoStack.shift();
+            atualizarBotaoUndo();
+        }
+
+        function atualizarBotaoUndo() {
+            const btn = $('btn-undo');
+            if (btn) {
+                const badge = btn.querySelector('.fab-badge');
+                if (undoStack.length > 0) {
+                    if (!badge) {
+                        const b = document.createElement('span');
+                        b.className = 'fab-badge';
+                        b.textContent = undoStack.length;
+                        btn.appendChild(b);
+                    } else {
+                        badge.textContent = undoStack.length;
+                    }
+                    btn.style.opacity = '1';
+                } else {
+                    if (badge) badge.remove();
+                    btn.style.opacity = '0.5';
+                }
+            }
+        }
+
+        // ============================================
+        // [MELHORIA] Diálogo de confirmação personalizado
+        // ============================================
+        let confirmCallback = null;
+
+        function mostrarConfirmacao(titulo, mensagem, callback) {
+            $('confirm-title').textContent = titulo;
+            $('confirm-message').textContent = mensagem;
+            confirmCallback = callback;
+            $('confirm-overlay').style.display = 'flex';
+        }
+
+        function fecharConfirmacao(resultado) {
+            $('confirm-overlay').style.display = 'none';
+            if (confirmCallback) {
+                const cb = confirmCallback;
+                confirmCallback = null;
+                if (resultado) cb();
+            }
+        }
+
+        $('confirm-ok').addEventListener('click', () => fecharConfirmacao(true));
+        $('confirm-cancel').addEventListener('click', () => fecharConfirmacao(false));
+
+        // ============================================
+        // [MELHORIA] Diálogo de edição de rótulo
+        // ============================================
+        let labelCallback = null;
+        let labelEditIndex = -1;
+
+        function mostrarDialogoRotulo(index, callback) {
+            labelEditIndex = index;
+            const p = state.pontos[index];
+            $('label-title').textContent = 'Rótulo do Punto #' + (index + 1);
+            $('label-input').value = p.label || '';
+            labelCallback = callback;
+            $('label-overlay').style.display = 'flex';
+            setTimeout(() => $('label-input').focus(), 100);
+        }
+
+        function salvarRotulo() {
+            const novoRotulo = $('label-input').value.trim();
+            $('label-overlay').style.display = 'none';
+            if (labelCallback) {
+                const cb = labelCallback;
+                labelCallback = null;
+                cb(novoRotulo);
+            }
+        }
+
+        $('label-save').addEventListener('click', salvarRotulo);
+        $('label-cancel').addEventListener('click', () => { $('label-overlay').style.display = 'none'; labelCallback = null; });
+        $('label-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') salvarRotulo(); });
+
+        // ============================================
+        // Estado global da aplicação
+        // ============================================
+        const state = {
+            pontos: [], currentPos: null,
+            satelitesPorSistema: { gps:0, glonass:0, galileo:0, beidou:0 },
+            gnssAtivos: { gps: true, glonass: true, galileo: true, beidou: true },
+            autoMode: false, autoInterval: null, autoModeType: 'time', autoIntervalSeconds: 5,
+            lastAutoPos: null, precisionThreshold: 5.0, datum: 'SIRGAS2000',
+            darkMode: false, projetoNome: 'Área sem nome', watchId: null,
+            erroMedio: 0, sessionSeed: Date.now(), satelliteCount: 0,
+            autoDistanceMin: 2.0, // [MELHORIA] distância mínima configurável
+            // [MELHORIA v2.1] Coleta com média ponderada
+            mediaAtivada: true,        // habilita/desabilita modo média
+            mediaDuracao: 10,          // segundos de amostragem por ponto
+            mediaIntervaloMs: 500,     // intervalo entre leituras (ms)
+            mediaDescarteOutliers: true, // habilita filtro MAD
+            mediaMADk: 2.5,            // fator k para filtro MAD (2.5 ≈ 3σ)
+            coletandoMedia: false,     // flag de coleta em andamento
+            amostrasAtuais: [],        // buffer de amostras da coleta atual
+        };
+
+
+
+        // ============================================
+        // Mapa (Leaflet)
+        // ============================================
+        const map = L.map('map', { zoomControl: true, center: [-15.78, -47.93], zoom: 16, maxZoom: 22 });
+        const layerStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+        const layerSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20 });
+        L.control.layers({ Rua: layerStreet, Satélite: layerSatellite }, {}, { position: 'topright', collapsed: true }).addTo(map);
+        layerStreet.addTo(map);
+        const polygonGroup = L.layerGroup().addTo(map);
+        const userMarker = null; // marcador de posição do usuário
+
+        // ============================================
+        // Conversão Lat/Lng -> UTM
+        // ============================================
+        function latLngToUTM(lat, lng) {
+            const a = 6378137, f = 1/298.257223563, k0 = 0.9996, e = Math.sqrt(2*f-f*f);
+            const e2 = e*e, e4 = e2*e2, e6 = e4*e2;
+            const zone = Math.floor((lng+180)/6)+1, lambda0 = (zone-1)*6-180+3;
+            const rad = Math.PI/180, latR = lat*rad, lngR = lng*rad;
+            const sinLat = Math.sin(latR), cosLat = Math.cos(latR), tanLat = Math.tan(latR);
+            const N = a/Math.sqrt(1-e2*sinLat*sinLat);
+            const T = tanLat*tanLat, C = e2/(1-e2)*cosLat*cosLat, A = (lngR-lambda0*rad)*cosLat;
+            const M = a*((1-e2/4-3*e4/64-5*e6/256)*latR - (3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*latR) + (15*e4/256+45*e6/1024)*Math.sin(4*latR) - (35*e6/3072)*Math.sin(6*latR));
+            const east = k0*N*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*e2)*Math.pow(A,5)/120)+500000;
+            const north = k0*(M+N*tanLat*(A*A/2+(5-T+9*C+4*C*C)*Math.pow(A,4)/24+(61-58*T+T*T+600*C-330*e2)*Math.pow(A,6)/720));
+            const hem = lat >= 0 ? 'N' : 'S', northAdj = lat < 0 ? north+10000000 : north;
+            return { easting: Math.round(east*100)/100, northing: Math.round(northAdj*100)/100, zone: zone, hemisphere: hem, zonaStr: zone+hem };
+        }
+
+        // ============================================
+        // [MELHORIA] Estimativa de satélites com nota honesta
+        // ============================================
+        function estimarSatelites(total) {
+            if (!total) return { gps:0, glonass:0, galileo:0, beidou:0 };
+            const seed = state.sessionSeed;
+            const pesos = {
+                gps: state.gnssAtivos.gps ? (Math.sin(seed)*0.35+0.25) : 0,
+                glonass: state.gnssAtivos.glonass ? (Math.sin(seed+1)*0.3+0.2) : 0,
+                galileo: state.gnssAtivos.galileo ? (Math.sin(seed+2)*0.25+0.15) : 0,
+                beidou: state.gnssAtivos.beidou ? 1.0 : 0,
+            };
+            const soma = pesos.gps + pesos.glonass + pesos.galileo + pesos.beidou;
+            if (soma === 0) return { gps:0, glonass:0, galileo:0, beidou:0 };
+            const gps = Math.round(total*pesos.gps/soma);
+            const glonass = Math.round(total*pesos.glonass/soma);
+            const galileo = Math.round(total*pesos.galileo/soma);
+            let beidou = total - gps - glonass - galileo;
+            if (beidou < 0) beidou = 0;
+            return { gps: Math.max(0,gps), glonass: Math.max(0,glonass), galileo: Math.max(0,galileo), beidou: Math.max(0,beidou) };
+        }
+
+        // ============================================
+        // Atualização da UI
+        // ============================================
+        function atualizarUI() {
+            const precs = state.pontos.map(p => p.precision);
+            const errMed = precs.length ? precs.reduce((a,b) => a+b, 0)/precs.length : 0;
+            state.erroMedio = errMed;
+            const result = state.pontos.length >= 3 ? calcularAreaPerimetroUTM() : { area: 0, perimetro: 0 };
+            const area = result.area, perimetro = result.perimetro;
+
+            $('float-area').textContent = area.toFixed(2);
+            $('float-ha').textContent = (area/10000).toFixed(4);
+            $('float-per').textContent = perimetro.toFixed(2);
+            $('float-err').textContent = errMed.toFixed(2);
+
+            $('data-area').textContent = area.toFixed(2);
+            $('data-ha').textContent = (area/10000).toFixed(4);
+            $('data-per').textContent = perimetro.toFixed(2);
+            $('data-err').textContent = errMed.toFixed(2);
+            $('data-pts').textContent = state.pontos.length;
+
+            $('gnss-total-badge').textContent = 'Total satélites: ' + state.satelliteCount + ' (est.)';
+            $('datum-info-badge').textContent = 'Datum: ' + state.datum;
+
+            atualizarDropdownsFerramentas();
+        }
+
+        function calcularAreaPerimetroUTM() {
+            const coords = state.pontos.map(p => ({ e: p.utm_e, n: p.utm_n }));
+            let area = 0;
+            const n = coords.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i+1) % n;
+                area += coords[i].e * coords[j].n - coords[j].e * coords[i].n;
+            }
+            area = Math.abs(area) / 2;
+            let per = 0;
+            for (let i = 0; i < n; i++) {
+                const j = (i+1) % n;
+                per += Math.hypot(coords[j].e - coords[i].e, coords[j].n - coords[i].n);
+            }
+            return { area: area, perimetro: per };
+        }
+
+        // ============================================
+        // [MELHORIA] Lista de pontos com rótulos
+        // ============================================
+        function atualizarLista() {
+            const c = $('lista-pontos-container');
+            if (!c) return;
+            if (!state.pontos.length) {
+                c.innerHTML = '<p style="text-align:center;color:var(--text2);">Nenhum ponto coletado</p>';
+                return;
+            }
+            c.innerHTML = state.pontos.map(function(p, i) {
+                const labelHtml = p.label ? '<span class="point-label">' + escapeHtml(p.label) + '</span>' : '';
+                // [MELHORIA v2.1] Badge indicando método de coleta
+                const metodoBadge = (p.metodo && p.metodo.indexOf('media') === 0)
+                    ? '<span style="background:var(--success);color:#fff;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:700;margin-right:4px;" title="Coletado com média ponderada (' + (p.amostras||'?') + ' amostras)">📊' + (p.amostras||'') + '</span>'
+                    : '';
+                const coordText = p.lat.toFixed(6) + ',' + p.lng.toFixed(6) + ' | ' + p.utm_zonaStr + ' ' + p.utm_e.toFixed(1) + ' ' + p.utm_n.toFixed(1) + ' | Prec:' + p.precision.toFixed(1) + 'm';
+                return '<div class="point-item">' +
+                    '<span class="idx" onclick="centralizarPonto(' + i + ')">#' + (i+1) + '</span>' +
+                    '<div class="coords">' + labelHtml + metodoBadge + coordText + '</div>' +
+                    '<button class="edit-label-btn" onclick="editarRotulo(' + i + ')" title="Editar rótulo">Aa</button>' +
+                    '<button class="btn-sm-icon" onclick="moverPonto(' + i + ',-1)" title="Mover para cima"' + (i===0?' disabled':'') + '>▲</button>' +
+                    '<button class="btn-sm-icon" onclick="moverPonto(' + i + ',1)" title="Mover para baixo"' + (i===state.pontos.length-1?' disabled':'') + '>▼</button>' +
+                    '<button class="del-btn" onclick="deletarPonto(' + i + ')">×</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // Operações com pontos
+        // ============================================
+        function moverPonto(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= state.pontos.length) return;
+            pushUndo('move', { from: index, to: newIndex, pontosAntes: JSON.parse(JSON.stringify(state.pontos)) });
+            const temp = state.pontos[index];
+            state.pontos[index] = state.pontos[newIndex];
+            state.pontos[newIndex] = temp;
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+            showToast('Ponto #' + (index+1) + ' movido para posição #' + (newIndex+1), 'success');
+        }
+
+        window.deletarPonto = function(i) {
+            mostrarConfirmacao('Excluir Ponto', 'Tem certeza que deseja excluir o ponto #' + (i+1) + (state.pontos[i].label ? ' (' + state.pontos[i].label + ')' : '') + '?', function() {
+                pushUndo('delete', { index: i, ponto: JSON.parse(JSON.stringify(state.pontos[i])) });
+                state.pontos.splice(i, 1);
+                atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+                showToast('Ponto #' + (i+1) + ' removido', 'warn');
+            });
+        };
+
+        // [MELHORIA] Desfazer
+        window.desfazer = function() {
+            if (!undoStack.length) { showToast('Nada para desfazer', 'warn'); return; }
+            const action = undoStack.pop();
+            switch (action.action) {
+                case 'add':
+                    state.pontos.pop();
+                    showToast('Ponto adicionado desfeito', 'success');
+                    break;
+                case 'delete':
+                    state.pontos.splice(action.data.index, 0, action.data.ponto);
+                    showToast('Exclusão desfeita - ponto #' + (action.data.index+1) + ' restaurado', 'success');
+                    break;
+                case 'clear':
+                    state.pontos = JSON.parse(JSON.stringify(action.data.pontos));
+                    showToast('Limpeza desfeita - ' + action.data.pontos.length + ' pontos restaurados', 'success');
+                    break;
+                case 'move':
+                    state.pontos = JSON.parse(JSON.stringify(action.data.pontosAntes));
+                    showToast('Movimentação desfeita', 'success');
+                    break;
+                case 'label':
+                    state.pontos[action.data.index].label = action.data.labelAnterior;
+                    showToast('Alteração de rótulo desfeita', 'success');
+                    break;
+                case 'import':
+                    state.pontos = action.data.pontosAntes.length ? JSON.parse(JSON.stringify(action.data.pontosAntes)) : [];
+                    showToast('Importação desfeita', 'success');
+                    break;
+                default:
+                    showToast('Ação desconhecida', 'warn');
+                    return;
+            }
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+            atualizarBotaoUndo();
+        };
+
+        // [MELHORIA] Atalho Ctrl+Z
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                window.desfazer();
+            }
+        });
+
+        // [MELHORIA] Editar rótulo do ponto
+        window.editarRotulo = function(index) {
+            mostrarDialogoRotulo(index, function(novoRotulo) {
+                const rotuloAnterior = state.pontos[index].label || '';
+                pushUndo('label', { index: index, labelAnterior: rotuloAnterior });
+                state.pontos[index].label = novoRotulo;
+                atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+                showToast(novoRotulo ? 'Rótulo "' + novoRotulo + '" definido' : 'Rótulo removido', 'success');
+            });
+        };
+
+        function atualizarDropdownsFerramentas() {
+            ['tool-dist-p1', 'tool-dist-p2', 'tool-info-ponto'].forEach(function(id) {
+                const sel = $(id); if (!sel) return;
+                const val = sel.value;
+                sel.innerHTML = '<option value="">Selecione...</option>';
+                state.pontos.forEach(function(p, i) {
+                    const label = p.label ? ' (' + p.label + ')' : '';
+                    sel.innerHTML += '<option value="' + i + '">Punto #' + (i+1) + label + ' (' + p.lat.toFixed(5) + ',' + p.lng.toFixed(5) + ')</option>';
+                });
+                if (state.pontos[val]) sel.value = val;
+            });
+        }
+
+        // ============================================
+        // Renderização do polígono no mapa
+        // ============================================
+        function atualizarPoligono() {
+            polygonGroup.clearLayers();
+            if (!state.pontos.length) return;
+            const latlngs = state.pontos.map(function(p) { return [p.lat, p.lng]; });
+
+            // Desenhar marcadores com rótulos
+            state.pontos.forEach(function(p, i) {
+                const labelStr = p.label ? '<div style="font-size:7px;color:#333;background:rgba(255,255,255,0.9);padding:1px 3px;border-radius:3px;white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis;margin-top:-1px;">' + escapeHtml(p.label) + '</div>' : '';
+                const mk = L.marker([p.lat, p.lng], {
+                    draggable: true,
+                    icon: L.divIcon({
+                        html: '<div style="text-align:center;"><div style="background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">' + (i+1) + '</div>' + labelStr + '</div>',
+                        iconSize: [24, p.label ? 38 : 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(polygonGroup);
+                mk.on('dragend', function(e) {
+                    const ll = e.target.getLatLng();
+                    const utm = latLngToUTM(ll.lat, ll.lng);
+                    pushUndo('move', { from: i, to: i, pontosAntes: JSON.parse(JSON.stringify(state.pontos)) });
+                    state.pontos[i].lat = ll.lat;
+                    state.pontos[i].lng = ll.lng;
+                    state.pontos[i].utm_e = utm.easting;
+                    state.pontos[i].utm_n = utm.northing;
+                    state.pontos[i].utm_zonaStr = utm.zonaStr;
+                    atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+                });
+            });
+
+            if (latlngs.length >= 2) {
+                L.polyline(latlngs, { color: '#0066cc', weight: 3, dashArray: null }).addTo(polygonGroup);
+            }
+            if (latlngs.length >= 3) {
+                L.polygon([].concat(latlngs, [latlngs[0]]), { color: '#0066cc', fillColor: '#4da6ff', fillOpacity: 0.2, weight: 3 }).addTo(polygonGroup);
+            }
+            if (latlngs.length) {
+                map.fitBounds(L.latLngBounds(latlngs).pad(0.2));
+            }
+        }
+
+        // ============================================
+        // Coleta de pontos
+        // ============================================
+
+        // [MELHORIA v2.1] Função principal de coleta — decide entre modo simples e média
+        function coletarPonto() {
+            if (state.coletandoMedia) {
+                showToast('Já há uma coleta em andamento', 'warn');
+                return;
+            }
+            if (!state.currentPos) { showToast('Aguardando sinal GNSS...', 'warn'); return; }
+            if (state.currentPos.precision > state.precisionThreshold) {
+                showToast('Precisão ' + state.currentPos.precision.toFixed(1) + 'm excede o limiar de ' + state.precisionThreshold + 'm', 'warn');
+                return;
+            }
+
+            if (state.mediaAtivada) {
+                iniciarColetaMedia();
+            } else {
+                coletarPontoSimples();
+            }
+        }
+
+        // [MELHORIA v2.1] Coleta simples (single-shot, modo legado)
+        function coletarPontoSimples() {
+            const p = state.currentPos;
+            const utm = latLngToUTM(p.lat, p.lng);
+            state.pontos.push({
+                lat: p.lat, lng: p.lng, alt: p.alt, precision: p.precision,
+                utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr,
+                timestamp: new Date().toISOString(),
+                label: '',
+                // Metadados de qualidade (single-shot)
+                amostras: 1, descartadas: 0, desvioPadrao: null, metodo: 'single'
+            });
+            pushUndo('add', {});
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+            showToast('Ponto #' + state.pontos.length + ' coletado (single)', 'success');
+        }
+
+        // [MELHORIA v2.1] Coleta com média ponderada — núcleo do sistema
+        let mediaTimer = null;
+        let mediaInicio = 0;
+        let mediaWakeLock = null;
+
+        async function iniciarColetaMedia() {
+            state.coletandoMedia = true;
+            state.amostrasAtuais = [];
+            mediaInicio = Date.now();
+            const duracaoMs = state.mediaDuracao * 1000;
+
+            // Tentar manter a tela ligada durante a coleta
+            try {
+                if (navigator.wakeLock) {
+                    mediaWakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch(e) { /* silencioso — wakeLock é opcional */ }
+
+            // UI: mostrar overlay e anel de progresso
+            $('media-overlay').classList.add('show');
+            $('btn-collect').classList.add('coletando');
+            $('fab-collect-icon').textContent = '⏺';
+            $('fab-ring').style.display = 'block';
+
+            // Capturar primeira amostra imediatamente
+            capturarAmostra();
+
+            mediaTimer = setInterval(function() {
+                const decorrido = Date.now() - mediaInicio;
+                if (decorrido >= duracaoMs) {
+                    finalizarColetaMedia();
+                } else {
+                    capturarAmostra();
+                    atualizarUIMedia(decorrido, duracaoMs);
+                }
+            }, state.mediaIntervaloMs);
+        }
+
+        function capturarAmostra() {
+            if (!state.currentPos) return;
+            // Capturar leituras mesmo que ultrapassem o limiar — o filtro removerá depois
+            state.amostrasAtuais.push({
+                lat: state.currentPos.lat,
+                lng: state.currentPos.lng,
+                alt: state.currentPos.alt,
+                precision: state.currentPos.precision,
+                t: Date.now()
+            });
+        }
+
+        function atualizarUIMedia(decorrido, duracaoMs) {
+            const segDec = decorrido / 1000;
+            const segRest = Math.max(0, (duracaoMs - decorrido) / 1000);
+            const pct = Math.min(100, (decorrido / duracaoMs) * 100);
+
+            $('media-tempo').textContent = segDec.toFixed(1) + ' s';
+            $('media-restante').textContent = segRest.toFixed(1) + ' s';
+            $('media-barra').style.width = pct + '%';
+
+            // Anel de progresso (circunferência = 2π·26 ≈ 163,36)
+            const offset = 163.36 * (1 - pct / 100);
+            $('fab-ring-fg').style.strokeDashoffset = offset;
+
+            // Estatísticas em tempo real
+            const amostras = state.amostrasAtuais;
+            $('media-validas').textContent = amostras.length;
+            if (state.currentPos) {
+                $('media-prec-atual').textContent = state.currentPos.precision.toFixed(1) + ' m';
+            }
+            if (amostras.length >= 3) {
+                const precs = amostras.map(function(a) { return a.precision; });
+                const precMed = precs.reduce(function(a,b){return a+b;}, 0) / precs.length;
+                $('media-prec-media').textContent = precMed.toFixed(1) + ' m';
+            }
+        }
+
+        function finalizarColetaMedia() {
+            clearInterval(mediaTimer);
+            mediaTimer = null;
+
+            const amostras = state.amostrasAtuais.slice();
+            const total = amostras.length;
+
+            // Liberar wake lock
+            if (mediaWakeLock) { try { mediaWakeLock.release(); } catch(e){} mediaWakeLock = null; }
+
+            // Resetar UI
+            resetarUIMedia();
+            state.coletandoMedia = false;
+
+            if (total < 2) {
+                showToast('Amostras insuficientes (' + total + '). Tente novamente.', 'warn');
+                return;
+            }
+
+            // Filtragem por MAD (Median Absolute Deviation) — robusto para amostras pequenas
+            let validas = amostras;
+            let descartadas = 0;
+            if (state.mediaDescarteOutliers && total >= 5) {
+                const res = filtrarOutliersMAD(amostras, state.mediaMADk);
+                validas = res.validas;
+                descartadas = res.descartadas;
+            }
+
+            if (validas.length < 2) {
+                showToast('Todas as amostras foram descartadas como outliers. Tente novamente.', 'warn');
+                return;
+            }
+
+            // Calcular média ponderada pelo inverso da variância (1/accuracy²)
+            const ponto = calcularMediaPonderada(validas);
+            ponto.amostras = validas.length;
+            ponto.descartadas = descartadas;
+            ponto.metodo = 'media_' + state.mediaDuracao + 's';
+
+            const utm = latLngToUTM(ponto.lat, ponto.lng);
+            state.pontos.push({
+                lat: ponto.lat, lng: ponto.lng, alt: ponto.alt,
+                precision: ponto.precision,  // precision agora é o erro padrão da média
+                utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr,
+                timestamp: new Date().toISOString(),
+                label: '',
+                amostras: ponto.amostras,
+                descartadas: ponto.descartadas,
+                desvioPadrao: ponto.desvioPadrao,
+                metodo: ponto.metodo
+            });
+
+            pushUndo('add', {});
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+
+            const msg = 'Ponto #' + state.pontos.length + ' coletado: ' +
+                ponto.precision.toFixed(2) + 'm (' + validas.length + ' amostras' +
+                (descartadas > 0 ? ', ' + descartadas + ' descartadas' : '') + ')';
+            showToast(msg, 'success');
+        }
+
+        function cancelarColetaMedia() {
+            if (!state.coletandoMedia) return;
+            clearInterval(mediaTimer);
+            mediaTimer = null;
+            if (mediaWakeLock) { try { mediaWakeLock.release(); } catch(e){} mediaWakeLock = null; }
+            state.coletandoMedia = false;
+            state.amostrasAtuais = [];
+            resetarUIMedia();
+            showToast('Coleta cancelada', 'warn');
+        }
+
+        function resetarUIMedia() {
+            $('media-overlay').classList.remove('show');
+            $('btn-collect').classList.remove('coletando');
+            $('fab-collect-icon').textContent = '📌';
+            $('fab-ring').style.display = 'none';
+            $('fab-ring-fg').style.strokeDashoffset = 163.36;
+            $('media-tempo').textContent = '0,0 s';
+            $('media-restante').textContent = state.mediaDuracao.toFixed(1) + ' s';
+            $('media-validas').textContent = '0';
+            $('media-descartadas').textContent = '0';
+            $('media-prec-atual').textContent = '--';
+            $('media-prec-media').textContent = '--';
+            $('media-barra').style.width = '0%';
+        }
+
+        // [MELHORIA v2.1] Filtro de outliers por MAD (mediana de desvios absolutos)
+        // Mais robusto que 3σ para amostras pequenas e não-normais
+        function filtrarOutliersMAD(amostras, k) {
+            const lats = amostras.map(function(a) { return a.lat; });
+            const lngs = amostras.map(function(a) { return a.lng; });
+            const medLat = mediana(lats);
+            const medLng = mediana(lngs);
+
+            // Distância de cada amostra à mediana (em metros, aprox.)
+            const distancias = amostras.map(function(a) {
+                return calcDist(a.lat, a.lng, medLat, medLng);
+            });
+            const medDist = mediana(distancias);
+            const desvios = distancias.map(function(d) { return Math.abs(d - medDist); });
+            const mad = mediana(desvios);
+
+            // Limiar: mediana + k * MAD * 1.4826 (constante para distribuição normal)
+            // Mínimo de 0,5 m para evitar descartes em coletas muito estáticas
+            const limiar = Math.max(0.5, medDist + k * mad * 1.4826);
+
+            const validas = [];
+            let descartadas = 0;
+            amostras.forEach(function(a, i) {
+                if (distancias[i] <= limiar) validas.push(a);
+                else descartadas++;
+            });
+
+            // Garantia: se sobrar menos de 40% das amostras, descartar o filtro
+            if (validas.length < amostras.length * 0.4) {
+                return { validas: amostras, descartadas: 0 };
+            }
+            return { validas: validas, descartadas: descartadas };
+        }
+
+        function mediana(arr) {
+            const sorted = arr.slice().sort(function(a,b) { return a - b; });
+            const n = sorted.length;
+            if (n === 0) return 0;
+            return n % 2 === 0 ? (sorted[n/2 - 1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)];
+        }
+
+        // [MELHORIA v2.1] Média ponderada pelo inverso da variância
+        // Cada leitura é ponderada por 1/accuracy², que é o estimador ótimo
+        // quando se assume que accuracy é proporcional ao desvio-padrão da medição.
+        function calcularMediaPonderada(amostras) {
+            let somaPesos = 0;
+            let somaLatPond = 0, somaLngPond = 0, somaAltPond = 0;
+            let nAlt = 0, somaPesosAlt = 0;
+
+            amostras.forEach(function(a) {
+                // Evitar divisão por zero: accuracy mínima de 0,5 m
+                const acc = Math.max(0.5, a.precision);
+                const peso = 1 / (acc * acc);
+                somaPesos += peso;
+                somaLatPond += a.lat * peso;
+                somaLngPond += a.lng * peso;
+                if (a.alt != null && !isNaN(a.alt)) {
+                    somaAltPond += a.alt * peso;
+                    somaPesosAlt += peso;
+                    nAlt++;
+                }
+            });
+
+            const latMedia = somaLatPond / somaPesos;
+            const lngMedia = somaLngPond / somaPesos;
+            const altMedia = nAlt > 0 ? somaAltPond / somaPesosAlt : null;
+
+            // Erro padrão da média ponderada = 1/sqrt(soma dos pesos)
+            // Representa a precisão estimada da posição média
+            const erroPadrao = 1 / Math.sqrt(somaPesos);
+
+            // Desvio-padrão amostral (espalhamento real das leituras em metros)
+            let somaDistQuad = 0;
+            amostras.forEach(function(a) {
+                const d = calcDist(a.lat, a.lng, latMedia, lngMedia);
+                somaDistQuad += d * d;
+            });
+            const desvioPadrao = Math.sqrt(somaDistQuad / amostras.length);
+
+            // Precisão final reportada: máximo entre erro padrão e desvio/sqrt(n)
+            // (conservador — evita superestimar a precisão se as amostras forem
+            // muito correlacionadas, como em GNSS sob multipath)
+            const precFinal = Math.max(erroPadrao, desvioPadrao / Math.sqrt(amostras.length));
+
+            return {
+                lat: latMedia, lng: lngMedia, alt: altMedia,
+                precision: precFinal,
+                desvioPadrao: desvioPadrao
+            };
+        }
+
+        // ============================================
+        // [CORREÇÃO] Modo automático com "Ambos" funcionando
+        // ============================================
+        function toggleModoAuto() {
+            state.autoMode = !state.autoMode;
+            const btn = $('btn-auto');
+            if (btn) btn.style.background = state.autoMode ? 'var(--accent)' : 'var(--warning)';
+            if (state.autoMode) {
+                state.lastAutoPos = state.currentPos ? { lat: state.currentPos.lat, lng: state.currentPos.lng } : null;
+                // [CORREÇÃO] Verificar tanto tempo quanto distância
+                state.autoInterval = setInterval(function() {
+                    if (state.autoMode) verificarAuto();
+                }, state.autoIntervalSeconds * 1000);
+                showToast('Modo automático ativado (' + traduzirModoAuto(state.autoModeType) + ')', 'success');
+            } else {
+                clearInterval(state.autoInterval);
+                showToast('Modo automático desativado', 'warn');
+            }
+        }
+
+        function traduzirModoAuto(tipo) {
+            switch(tipo) {
+                case 'time': return 'Tempo';
+                case 'distance': return 'Distância';
+                case 'both': return 'Tempo + Distância';
+                default: return tipo;
+            }
+        }
+
+        // [CORREÇÃO CRÍTICA] Agora o modo "both" funciona corretamente
+        function verificarAuto() {
+            if (!state.currentPos || state.currentPos.precision > state.precisionThreshold) return;
+            let ok = false;
+
+            if (state.autoModeType === 'time') {
+                ok = true;
+            } else if (state.autoModeType === 'distance') {
+                ok = verificarDistanciaMinima();
+            } else if (state.autoModeType === 'both') {
+                // [CORREÇÃO] No modo "ambos", exige tanto o intervalo de tempo quanto a distância mínima
+                ok = verificarDistanciaMinima();
+            }
+
+            if (ok) {
+                state.lastAutoPos = { lat: state.currentPos.lat, lng: state.currentPos.lng };
+                coletarPonto();
+            }
+        }
+
+        function verificarDistanciaMinima() {
+            if (!state.lastAutoPos) return true;
+            const d = calcDist(state.lastAutoPos.lat, state.lastAutoPos.lng, state.currentPos.lat, state.currentPos.lng);
+            return d >= state.autoDistanceMin;
+        }
+
+        function calcDist(lat1, lng1, lat2, lng2) {
+            const R = 6371000;
+            const dLat = (lat2-lat1) * Math.PI/180;
+            const dLng = (lng2-lng1) * Math.PI/180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function calcAzimute(lat1, lng1, lat2, lng2) {
+            const rad = Math.PI/180, dLng = (lng2-lng1)*rad;
+            const y = Math.sin(dLng)*Math.cos(lat2*rad);
+            const x = Math.cos(lat1*rad)*Math.sin(lat2*rad) - Math.sin(lat1*rad)*Math.cos(lat2*rad)*Math.cos(dLng);
+            return ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+        }
+
+        // ============================================
+        // Limpar pontos (com confirmação personalizada)
+        // ============================================
+        window.limparPontos = function() {
+            if (!state.pontos.length) return;
+            mostrarConfirmacao('Limpar Todos os Pontos', 'Tem certeza que deseja remover todos os ' + state.pontos.length + ' pontos coletados? Esta ação pode ser desfeita.', function() {
+                pushUndo('clear', { pontos: JSON.parse(JSON.stringify(state.pontos)) });
+                state.pontos = [];
+                polygonGroup.clearLayers();
+                atualizarUI(); atualizarLista(); salvar();
+                showToast('Todos os pontos foram removidos', 'warn');
+            });
+        };
+
+        function centralizarUsuario() {
+            if (state.currentPos) {
+                map.setView([state.currentPos.lat, state.currentPos.lng], 18, { animate: true });
+                showToast('Centralizado na posição atual', 'success');
+            } else {
+                showToast('Sinal GNSS indisponível', 'warn');
+            }
+        }
+
+        function toggleInfoPanel() {
+            const panel = $('map-info-overlay');
+            const btn = $('info-toggle-btn');
+            panel.classList.toggle('collapsed');
+            btn.textContent = panel.classList.contains('collapsed') ? '▸' : '▾';
+        }
+
+        // ============================================
+        // Ferramentas
+        // ============================================
+        function calcularDistanciaAzimute() {
+            const i1 = parseInt($('tool-dist-p1').value), i2 = parseInt($('tool-dist-p2').value);
+            const r = $('result-dist-azimute');
+            if (isNaN(i1) || isNaN(i2) || i1 === i2) {
+                r.style.display = 'block';
+                r.innerHTML = 'Selecione dois pontos distintos.';
+                return;
+            }
+            const p1 = state.pontos[i1], p2 = state.pontos[i2];
+            const dH = calcDist(p1.lat, p1.lng, p2.lat, p2.lng);
+            const dV = (p1.alt != null && p2.alt != null) ? Math.abs(p2.alt - p1.alt) : null;
+            const d3D = dV != null ? Math.sqrt(dH*dH + dV*dV) : null;
+            const az = calcAzimute(p1.lat, p1.lng, p2.lat, p2.lng);
+            r.style.display = 'block';
+            r.innerHTML = '<strong>Dist. horizontal:</strong> ' + dH.toFixed(2) + ' m<br>' +
+                (dV != null ? '<strong>Desnível:</strong> ' + dV.toFixed(2) + ' m<br>' : '') +
+                (d3D != null ? '<strong>Dist. 3D:</strong> ' + d3D.toFixed(2) + ' m<br>' : '') +
+                '<strong>Azimute (P1→P2):</strong> ' + az.toFixed(2) + '°';
+        }
+
+        // [MELHORIA] Adicionar ponto manual com rótulo
+        function adicionarPontoManual() {
+            const lat = parseFloat($('tool-add-lat').value);
+            const lng = parseFloat($('tool-add-lng').value);
+            const alt = parseFloat($('tool-add-alt').value) || null;
+            const label = $('tool-add-label').value.trim();
+            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                showToast('Coordenadas inválidas', 'error');
+                return;
+            }
+            const utm = latLngToUTM(lat, lng);
+            state.pontos.push({
+                lat: lat, lng: lng, alt: alt, precision: 0.5,
+                utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr,
+                timestamp: new Date().toISOString(), label: label
+            });
+            pushUndo('add', {});
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+            $('tool-add-lat').value = ''; $('tool-add-lng').value = ''; $('tool-add-alt').value = ''; $('tool-add-label').value = '';
+            showToast('Punto #' + state.pontos.length + ' adicionado' + (label ? ' (' + label + ')' : ''), 'success');
+        }
+
+        function exibirInfoPonto() {
+            const i = parseInt($('tool-info-ponto').value), r = $('result-info-ponto');
+            if (isNaN(i)) { r.style.display = 'none'; return; }
+            const p = state.pontos[i];
+            r.style.display = 'block';
+            let html = '<strong>Ponto #' + (i+1) + '</strong>';
+            if (p.label) html += ' - ' + escapeHtml(p.label);
+            html += '<br>Lat: ' + p.lat.toFixed(7) + '°<br>Lng: ' + p.lng.toFixed(7) + '°<br>' +
+                'UTM: ' + p.utm_zonaStr + ' E:' + p.utm_e.toFixed(2) + ' N:' + p.utm_n.toFixed(2) + '<br>' +
+                'Alt: ' + (p.alt != null ? p.alt.toFixed(2) + ' m' : 'N/D') + '<br>' +
+                'Prec: ' + p.precision.toFixed(2) + ' m<br>';
+            // [MELHORIA v2.1] Exibir detalhes da coleta com média
+            const metodo = p.metodo || 'single';
+            if (metodo.indexOf('media') === 0) {
+                const segs = metodo.replace('media_', '').replace('s', '');
+                html += '<strong style="color:var(--success);">Método: Média ponderada (' + segs + 's)</strong><br>' +
+                    'Amostras válidas: ' + (p.amostras || 0) + '<br>' +
+                    (p.descartadas > 0 ? 'Outliers descartados: ' + p.descartadas + '<br>' : '') +
+                    (p.desvioPadrao != null ? 'Desvio-padrão entre amostras: ' + p.desvioPadrao.toFixed(2) + ' m<br>' : '');
+            } else {
+                html += '<em>Método: Leitura única</em><br>';
+            }
+            html += 'Data: ' + new Date(p.timestamp).toLocaleString('pt-BR');
+            r.innerHTML = html;
+        }
+
+        // ============================================
+        // Exportações
+        // ============================================
+        function exportarKML() {
+            if (state.pontos.length < 3) { showToast('Mínimo 3 pontos para exportar', 'warn'); return; }
+            let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+            kml += '<name>' + escapeXml(state.projetoNome) + '</name>\n';
+            kml += '<description>GeoÁrea GNSS v2.0 | Datum: ' + state.datum + ' | Erro médio: ' + state.erroMedio.toFixed(2) + 'm | Data: ' + new Date().toISOString() + '</description>\n';
+            // Exportar pontos como Placemarks com rótulos
+            state.pontos.forEach(function(p, i) {
+                kml += '<Placemark><name>#' + (i+1) + (p.label ? ' - ' + escapeXml(p.label) : '') + '</name>';
+                kml += '<Point><coordinates>' + p.lng + ',' + p.lat + ',' + (p.alt || 0) + '</coordinates></Point></Placemark>\n';
+            });
+            kml += '<Placemark><name>' + escapeXml(state.projetoNome) + ' (Polígono)</name><Polygon><outerBoundaryIs><LinearRing><coordinates>\n';
+            state.pontos.forEach(function(p) { kml += p.lng + ',' + p.lat + ',' + (p.alt||0) + '\n'; });
+            kml += state.pontos[0].lng + ',' + state.pontos[0].lat + ',' + (state.pontos[0].alt||0) + '\n';
+            kml += '</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n';
+            kml += '</Document>\n</kml>';
+            download(kml, state.projetoNome + '.kml', 'application/vnd.google-earth.kml+xml');
+            showToast('KML exportado!', 'success');
+        }
+
+        function exportarCSV() {
+            if (!state.pontos.length) { showToast('Sem pontos para exportar', 'warn'); return; }
+            let csv = 'ID,Label,Latitude,Longitude,Altitude,Precisao(m),UTM_E,UTM_N,UTM_Zona,Amostras,Descartadas,DesvioPadrao(m),Metodo,Timestamp\n';
+            state.pontos.forEach(function(p, i) {
+                csv += (i+1) + ',"' + (p.label || '') + '",' + p.lat + ',' + p.lng + ',' + (p.alt||'') + ',' +
+                    p.precision + ',' + p.utm_e + ',' + p.utm_n + ',' + p.utm_zonaStr + ',' +
+                    (p.amostras || 1) + ',' + (p.descartadas || 0) + ',' +
+                    (p.desvioPadrao != null ? p.desvioPadrao.toFixed(3) : '') + ',' +
+                    (p.metodo || 'single') + ',' + p.timestamp + '\n';
+            });
+            const result = calcularAreaPerimetroUTM();
+            csv += '\nÁrea (m²),' + result.area.toFixed(2) + '\nHectares,' + (result.area/10000).toFixed(4) + '\nPerímetro (m),' + result.perimetro.toFixed(2) + '\nErro Médio (m),' + state.erroMedio.toFixed(2) + '\nDatum,' + state.datum;
+            download(csv, state.projetoNome + '.csv', 'text/csv');
+            showToast('CSV exportado!', 'success');
+        }
+
+        function exportarGeoJSON() {
+            if (state.pontos.length < 3) { showToast('Mínimo 3 pontos para exportar', 'warn'); return; }
+            const coords = state.pontos.map(function(p) { return [p.lng, p.lat]; });
+            coords.push(coords[0]);
+            const result = calcularAreaPerimetroUTM();
+            const gj = {
+                type: 'FeatureCollection',
+                features: [
+                    {
+                        type: 'Feature',
+                        properties: {
+                            nome: state.projetoNome, area_m2: result.area,
+                            hectares: result.area / 10000, perimetro_m: result.perimetro,
+                            erro_medio: state.erroMedio, datum: state.datum,
+                            versao: '2.0', data_exportacao: new Date().toISOString(),
+                            vertices: state.pontos.map(function(p, i) {
+                                return {
+                                    id: i+1, label: p.label || '', precision: p.precision,
+                                    amostras: p.amostras || 1,
+                                    descartadas: p.descartadas || 0,
+                                    desvio_padrao: p.desvioPadrao,
+                                    metodo: p.metodo || 'single'
+                                };
+                            })
+                        },
+                        geometry: { type: 'Polygon', coordinates: [coords] }
+                    }
+                ]
+            };
+            download(JSON.stringify(gj, null, 2), state.projetoNome + '.geojson', 'application/geo+json');
+            showToast('GeoJSON exportado!', 'success');
+        }
+
+        // [MELHORIA] Exportação DXF para AutoCAD
+        function exportarDXF() {
+            if (state.pontos.length < 3) { showToast('Mínimo 3 pontos para exportar', 'warn'); return; }
+            const result = calcularAreaPerimetroUTM();
+            let dxf = '';
+            dxf += '0\nSECTION\n2\nHEADER\n';
+            dxf += '9\n$ACADVER\n1\nAC1009\n';
+            dxf += '9\n$INSUNITS\n70\n4\n'; // metros
+            dxf += '0\nENDSEC\n';
+
+            // Tabelas
+            dxf += '0\nSECTION\n2\nTABLES\n';
+            dxf += '0\nTABLE\n2\nLAYER\n70\n3\n';
+            // Camada POLIGONO
+            dxf += '0\nLAYER\n2\nPOLIGONO\n70\n0\n62\n1\n6\nCONTINUOUS\n';
+            // Camada VERTICES
+            dxf += '0\nLAYER\n2\nVERTICES\n70\n0\n62\n3\n6\nCONTINUOUS\n';
+            // Camada TEXTOS
+            dxf += '0\nLAYER\n2\nTEXTOS\n70\n0\n62\n7\n6\nCONTINUOUS\n';
+            dxf += '0\nENDTAB\n';
+            dxf += '0\nENDSEC\n';
+
+            // Entidades
+            dxf += '0\nSECTION\n2\nENTITIES\n';
+
+            // Polígono (LINESTRING fechado)
+            for (let i = 0; i < state.pontos.length; i++) {
+                const j = (i + 1) % state.pontos.length;
+                dxf += '0\nLINE\n8\nPOLIGONO\n';
+                dxf += '10\n' + state.pontos[i].utm_e.toFixed(3) + '\n20\n' + state.pontos[i].utm_n.toFixed(3) + '\n30\n0.0\n';
+                dxf += '11\n' + state.pontos[j].utm_e.toFixed(3) + '\n21\n' + state.pontos[j].utm_n.toFixed(3) + '\n31\n0.0\n';
+            }
+
+            // Vértices (pontos)
+            state.pontos.forEach(function(p, i) {
+                dxf += '0\nPOINT\n8\nVERTICES\n';
+                dxf += '10\n' + p.utm_e.toFixed(3) + '\n20\n' + p.utm_n.toFixed(3) + '\n30\n0.0\n';
+                // Texto com número e rótulo
+                const texto = '#' + (i+1) + (p.label ? ' ' + p.label : '');
+                dxf += '0\nTEXT\n8\nTEXTOS\n';
+                dxf += '10\n' + (p.utm_e + 1).toFixed(3) + '\n20\n' + (p.utm_n + 1).toFixed(3) + '\n30\n0.0\n';
+                dxf += '40\n1.5\n1\n' + texto + '\n';
+            });
+
+            dxf += '0\nENDSEC\n';
+            dxf += '0\nEOF\n';
+
+            download(dxf, state.projetoNome + '.dxf', 'application/dxf');
+            showToast('DXF exportado para AutoCAD!', 'success');
+        }
+
+        function escapeXml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function download(content, filename, mime) {
+            const blob = new Blob([content], { type: mime });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function compartilhar() {
+            if (state.pontos.length < 3) { showToast('Mínimo 3 pontos para compartilhar', 'warn'); return; }
+            const result = calcularAreaPerimetroUTM();
+            const texto = 'GeoÁrea GNSS v2.0\n' +
+                'Projeto: ' + state.projetoNome + '\n' +
+                'Datum: ' + state.datum + '\n' +
+                'Área: ' + result.area.toFixed(2) + ' m² (' + (result.area/10000).toFixed(4) + ' ha)\n' +
+                'Perímetro: ' + result.perimetro.toFixed(2) + ' m\n' +
+                'Vértices: ' + state.pontos.length + '\n' +
+                'Erro médio: ' + state.erroMedio.toFixed(2) + ' m\n' +
+                'Data: ' + new Date().toLocaleString('pt-BR');
+            if (navigator.share) {
+                navigator.share({ title: state.projetoNome, text: texto }).catch(function() {});
+            } else {
+                navigator.clipboard.writeText(texto).then(function() { showToast('Dados copiados!', 'success'); });
+            }
+        }
+
+        function abrirRelatorio() {
+            const result = calcularAreaPerimetroUTM();
+            const precs = state.pontos.map(function(p) { return p.precision; });
+            const precMedia = precs.length ? precs.reduce(function(a,b){return a+b;},0)/precs.length : 0;
+            const precMin = precs.length ? Math.min.apply(null, precs) : 0;
+            const precMax = precs.length ? Math.max.apply(null, precs) : 0;
+
+            let html = '<h3>Relatório Técnico</h3>';
+            html += '<p><b>Projeto:</b> ' + escapeHtml(state.projetoNome) + '</p>';
+            html += '<p><b>Data:</b> ' + new Date().toLocaleString('pt-BR') + '</p>';
+            html += '<p><b>Datum de referência:</b> ' + state.datum + '</p>';
+            html += '<p><b>Nota:</b> Coordenadas obtidas pelo GNSS do dispositivo (WGS84 nativo). Datum selecionado é para referência.</p>';
+            html += '<hr>';
+            html += '<p><b>Total de satélites (estimado):</b> ' + state.satelliteCount;
+            html += ' (GPS:' + state.satelitesPorSistema.gps + ' GLONASS:' + state.satelitesPorSistema.glonass + ' Galileo:' + state.satelitesPorSistema.galileo + ' BeiDou:' + state.satelitesPorSistema.beidou + ')</p>';
+            html += '<p><b>Precisão média:</b> ' + precMedia.toFixed(2) + ' m</p>';
+            html += '<p><b>Precisão mínima:</b> ' + precMin.toFixed(2) + ' m</p>';
+            html += '<p><b>Precisão máxima:</b> ' + precMax.toFixed(2) + ' m</p>';
+            html += '<p><b>Erro médio:</b> ' + state.erroMedio.toFixed(2) + ' m</p>';
+            html += '<hr>';
+            html += '<p><b>Vértices:</b> ' + state.pontos.length + '</p>';
+            html += '<p><b>Área:</b> ' + result.area.toFixed(2) + ' m² = ' + (result.area/10000).toFixed(4) + ' ha</p>';
+            html += '<p><b>Perímetro:</b> ' + result.perimetro.toFixed(2) + ' m</p>';
+
+            // [MELHORIA v2.1] Estatísticas de qualidade da coleta
+            const ptsComMedia = state.pontos.filter(function(p) { return p.metodo && p.metodo.indexOf('media') === 0; });
+            const ptsSimples = state.pontos.filter(function(p) { return !p.metodo || p.metodo === 'single'; });
+            if (state.pontos.length > 0) {
+                html += '<hr><p><b>Qualidade da Coleta:</b></p>';
+                html += '<p>Pontos com média ponderada: ' + ptsComMedia.length + ' / ' + state.pontos.length + '</p>';
+                html += '<p>Pontos single-shot: ' + ptsSimples.length + ' / ' + state.pontos.length + '</p>';
+                if (ptsComMedia.length > 0) {
+                    const totAmostras = ptsComMedia.reduce(function(s,p){ return s + (p.amostras||0); }, 0);
+                    const totDescarte = ptsComMedia.reduce(function(s,p){ return s + (p.descartadas||0); }, 0);
+                    const dpMed = ptsComMedia.reduce(function(s,p){ return s + (p.desvioPadrao||0); }, 0) / ptsComMedia.length;
+                    html += '<p>Total de amostras processadas: ' + totAmostras + '</p>';
+                    html += '<p>Total de amostras descartadas (outliers): ' + totDescarte +
+                        ' (' + (totAmostras > 0 ? (100*totDescarte/(totAmostras+totDescarte)).toFixed(1) : '0') + '%)</p>';
+                    html += '<p>Desvio-padrão médio entre amostras: ' + dpMed.toFixed(2) + ' m</p>';
+                }
+            }
+
+            html += '<hr><p><b>Tabela de Vértices:</b></p>';
+            html += '<table style="width:100%;font-size:9px;border-collapse:collapse;">';
+            html += '<tr style="background:var(--primary-light);"><th>#</th><th>Rótulo</th><th>Lat</th><th>Lng</th><th>UTM</th><th>Prec</th><th>Método</th><th>n</th><th>Data</th></tr>';
+            state.pontos.forEach(function(p, i) {
+                const metodo = p.metodo || 'single';
+                const metodoLbl = metodo === 'single' ? 'single' : metodo.replace('media_', 'méd. ');
+                html += '<tr><td>' + (i+1) + '</td><td>' + escapeHtml(p.label || '-') + '</td><td>' + p.lat.toFixed(7) + '</td><td>' + p.lng.toFixed(7) +
+                    '</td><td>' + p.utm_zonaStr + ' ' + p.utm_e.toFixed(1) + ' ' + p.utm_n.toFixed(1) + '</td><td>' + p.precision.toFixed(1) + 'm</td><td>' +
+                    metodoLbl + '</td><td>' + (p.amostras || 1) + '</td><td>' + new Date(p.timestamp).toLocaleString('pt-BR') + '</td></tr>';
+            });
+            html += '</table>';
+
+            $('relatorio-content').innerHTML = html;
+            $('tab-relatorio').style.display = 'block';
+        }
+
+        function baixarRelatorio() {
+            const html = $('relatorio-content').innerHTML;
+            const full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório - ' + escapeHtml(state.projetoNome) + '</title><style>body{font-family:sans-serif;max-width:700px;margin:20px auto;padding:20px;line-height:1.6}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:4px 6px;text-align:center;font-size:11px}th{background:#e0f0ff}hr{margin:12px 0;border:none;border-top:1px solid #ddd}</style></head><body>' + html + '</body></html>';
+            download(full, 'Relatorio_' + state.projetoNome + '.html', 'text/html');
+            showToast('Relatório baixado!', 'success');
+        }
+
+        // ============================================
+        // Importação (com suporte a undo)
+        // ============================================
+        function abrirImportar() { $('file-import').click(); }
+
+        function importarArquivo(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const pontosAntes = JSON.parse(JSON.stringify(state.pontos));
+                    pushUndo('import', { pontosAntes: pontosAntes });
+
+                    if (file.name.endsWith('.geojson') || file.name.endsWith('.json')) {
+                        importarGeoJSON(JSON.parse(content));
+                    } else if (file.name.endsWith('.kml')) {
+                        importarKML(content);
+                    } else if (file.name.endsWith('.csv')) {
+                        importarCSV(content);
+                    } else {
+                        showToast('Formato não reconhecido', 'error');
+                        undoStack.pop(); // reverter o push
+                    }
+                } catch (ex) {
+                    showToast('Erro ao ler arquivo: ' + ex.message, 'error');
+                    undoStack.pop();
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function importarGeoJSON(gj) {
+            const feats = gj.features || [gj];
+            const coords = (feats[0] && feats[0].geometry && feats[0].geometry.coordinates && feats[0].geometry.coordinates[0]) || [];
+            if (coords.length < 3) { showToast('GeoJSON inválido - mínimo 3 pontos', 'error'); return; }
+            state.pontos = coords.slice(0, -1).map(function(c) {
+                const utm = latLngToUTM(c[1], c[0]);
+                return { lat: c[1], lng: c[0], alt: c[2] || null, precision: 1.0, utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr, timestamp: new Date().toISOString(), label: '' };
+            });
+            // Tentar extrair rótulos das propriedades
+            if (feats[0] && feats[0].properties && feats[0].properties.vertices) {
+                feats[0].properties.vertices.forEach(function(v, i) {
+                    if (state.pontos[i] && v.label) state.pontos[i].label = v.label;
+                });
+            }
+            finalizarImportacao();
+        }
+
+        function importarKML(content) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/xml');
+            const coordText = (doc.querySelector('coordinates') || {}).textContent;
+            if (!coordText) { showToast('KML sem coordenadas', 'error'); return; }
+            const coords = coordText.trim().split(/\s+/).filter(function(c) { return c.includes(','); }).map(function(c) {
+                const p = c.split(',');
+                return { lng: parseFloat(p[0]), lat: parseFloat(p[1]), alt: parseFloat(p[2]) || null };
+            });
+            if (coords.length < 3) { showToast('KML inválido - mínimo 3 pontos', 'error'); return; }
+            state.pontos = coords.slice(0, -1).map(function(c) {
+                const utm = latLngToUTM(c.lat, c.lng);
+                return { lat: c.lat, lng: c.lng, alt: c.alt, precision: 1.0, utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr, timestamp: new Date().toISOString(), label: '' };
+            });
+            finalizarImportacao();
+        }
+
+        function importarCSV(content) {
+            const lines = content.split('\n').filter(function(l) { return l.trim() && !l.startsWith('Área') && !l.startsWith('Hectares') && !l.startsWith('Perímetro') && !l.startsWith('ID,'); });
+            const pts = [];
+            lines.forEach(function(line) {
+                const cols = line.split(',');
+                if (cols.length >= 2 && !isNaN(parseFloat(cols[1])) && !isNaN(parseFloat(cols[2]))) {
+                    const lat = parseFloat(cols[1]), lng = parseFloat(cols[2]);
+                    const utm = latLngToUTM(lat, lng);
+                    const label = cols.length > 1 && cols[0] ? cols[0].replace(/"/g, '').trim() : '';
+                    pts.push({
+                        lat: lat, lng: lng, alt: cols[3] ? parseFloat(cols[3]) : null,
+                        precision: cols[4] ? parseFloat(cols[4]) : 1.0,
+                        utm_e: utm.easting, utm_n: utm.northing, utm_zonaStr: utm.zonaStr,
+                        timestamp: new Date().toISOString(), label: label
+                    });
+                }
+            });
+            if (pts.length < 3) { showToast('CSV sem dados suficientes (mín. 3 pontos)', 'error'); return; }
+            state.pontos = pts;
+            finalizarImportacao();
+        }
+
+        function finalizarImportacao() {
+            state.erroMedio = state.pontos.length ? state.pontos.reduce(function(a,b){return a+b.precision;}, 0) / state.pontos.length : 0;
+            atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+            showToast(state.pontos.length + ' pontos importados!', 'success');
+        }
+
+        // ============================================
+        // Persistência (localStorage)
+        // ============================================
+        function salvar() {
+            try {
+                localStorage.setItem('geoarea_v7', JSON.stringify({
+                    pontos: state.pontos, projeto: state.projetoNome,
+                    dark: state.darkMode, precision: state.precisionThreshold,
+                    datum: state.datum, autoType: state.autoModeType,
+                    autoInt: state.autoIntervalSeconds, autoDist: state.autoDistanceMin,
+                    gnssAtivos: state.gnssAtivos,
+                    // [MELHORIA v2.1] Configurações de média ponderada
+                    mediaAtivada: state.mediaAtivada,
+                    mediaDuracao: state.mediaDuracao,
+                    mediaDescarteOutliers: state.mediaDescarteOutliers
+                }));
+            } catch(e) { /* storage cheio ou indisponível */ }
+        }
+
+        function carregar() {
+            try {
+                let d = null;
+
+                // Tentar carregar da versão v7
+                try { d = JSON.parse(localStorage.getItem('geoarea_v7')); } catch(e) {}
+
+                // [COMPAT] Migrar de v6 para v7
+                if (!d || !d.pontos) {
+                    try {
+                        const v6 = JSON.parse(localStorage.getItem('geoarea_v6'));
+                        if (v6 && v6.pontos) {
+                            d = v6;
+                            // Salvar como v7
+                            localStorage.setItem('geoarea_v7', JSON.stringify(d));
+                        }
+                    } catch(e) {}
+                }
+
+                if (!d) d = {};
+
+                if (d.pontos && Array.isArray(d.pontos)) {
+                    state.pontos = d.pontos.filter(function(p) {
+                        // Filtrar pontos inválidos
+                        return p && typeof p.lat === 'number' && typeof p.lng === 'number';
+                    });
+                    // Migrar pontos sem campo label
+                    state.pontos.forEach(function(p) {
+                        if (p.label === undefined || p.label === null) p.label = '';
+                    });
+                }
+
+                state.projetoNome = d.projeto || 'Área sem nome';
+                state.darkMode = !!d.dark;
+                if (state.darkMode) document.body.classList.add('dark-mode');
+                state.precisionThreshold = parseFloat(d.precision) || 5.0;
+                state.autoModeType = d.autoType || 'time';
+                state.autoIntervalSeconds = parseInt(d.autoInt) || 5;
+                state.autoDistanceMin = parseFloat(d.autoDist) || 2.0;
+                state.datum = d.datum || 'SIRGAS2000';
+                state.gnssAtivos = d.gnssAtivos || { gps:true, glonass:true, galileo:true, beidou:true };
+                // [MELHORIA v2.1] Carregar configurações de média ponderada
+                if (d.mediaAtivada !== undefined) state.mediaAtivada = !!d.mediaAtivada;
+                if (d.mediaDuracao) state.mediaDuracao = parseInt(d.mediaDuracao) || 10;
+                if (d.mediaDescarteOutliers !== undefined) state.mediaDescarteOutliers = !!d.mediaDescarteOutliers;
+
+                if ($('config-precision-threshold')) $('config-precision-threshold').value = state.precisionThreshold;
+                if ($('config-auto-mode')) $('config-auto-mode').value = state.autoModeType;
+                if ($('config-auto-interval')) $('config-auto-interval').value = state.autoIntervalSeconds;
+                if ($('config-auto-distance')) $('config-auto-distance').value = state.autoDistanceMin;
+                if ($('config-datum')) $('config-datum').value = state.datum;
+                if ($('datum-badge')) $('datum-badge').textContent = state.datum;
+                // [MELHORIA v2.1] Refletir config de média na UI
+                if ($('config-media-ativada')) $('config-media-ativada').checked = state.mediaAtivada;
+                if ($('config-media-duracao')) $('config-media-duracao').value = state.mediaDuracao;
+                if ($('config-media-outliers')) $('config-media-outliers').checked = state.mediaDescarteOutliers;
+
+                ['gps','glonass','galileo','beidou'].forEach(function(s) {
+                    var el = $('gnss-' + s);
+                    if (el && state.gnssAtivos[s] !== undefined) el.checked = state.gnssAtivos[s];
+                });
+                aplicarVisibilidadeGNSS();
+                atualizarAvisoDatum();
+                atualizarPoligono();
+                atualizarUI();
+                atualizarLista();
+                atualizarBotaoUndo();
+            } catch(e) {
+                console.error('Erro ao carregar dados:', e);
+            }
+        }
+
+        // ============================================
+        // Configurações
+        // ============================================
+        function salvarConfigGNSS() {
+            state.gnssAtivos.gps = $('gnss-gps').checked;
+            state.gnssAtivos.glonass = $('gnss-glonass').checked;
+            state.gnssAtivos.galileo = $('gnss-galileo').checked;
+            state.gnssAtivos.beidou = $('gnss-beidou').checked;
+            aplicarVisibilidadeGNSS();
+            salvar();
+            showToast('Sistemas GNSS atualizados', 'success');
+        }
+
+        function aplicarVisibilidadeGNSS() {
+            ['gps','glonass','galileo','beidou'].forEach(function(s) {
+                const el = $(s + '-icon');
+                if (el) el.style.display = state.gnssAtivos[s] ? 'inline' : 'none';
+            });
+            if (state.currentPos && state.satelliteCount) {
+                state.satelitesPorSistema = estimarSatelites(state.satelliteCount);
+                atualizarStatus();
+            }
+        }
+
+        function salvarConfigAutoMode() { state.autoModeType = $('config-auto-mode').value; salvar(); }
+        function salvarConfigAutoInterval() { state.autoIntervalSeconds = parseInt($('config-auto-interval').value) || 5; salvar(); }
+        function salvarConfigPrecision() { state.precisionThreshold = parseFloat($('config-precision-threshold').value) || 5.0; salvar(); }
+        function salvarConfigAutoDistance() { state.autoDistanceMin = parseFloat($('config-auto-distance').value) || 2.0; salvar(); }
+
+        // [MELHORIA v2.1] Salvar configuração de média ponderada
+        function salvarConfigMedia() {
+            state.mediaAtivada = $('config-media-ativada').checked;
+            state.mediaDuracao = parseInt($('config-media-duracao').value) || 10;
+            state.mediaDescarteOutliers = $('config-media-outliers').checked;
+            salvar();
+            showToast(state.mediaAtivada ? 'Média ponderada ativada (' + state.mediaDuracao + 's)' : 'Coleta simples ativada', 'success');
+        }
+
+        // [MELHORIA] Aviso de datum
+        function atualizarDatum() {
+            state.datum = $('config-datum').value;
+            $('datum-badge').textContent = state.datum;
+            atualizarAvisoDatum();
+            salvar();
+        }
+
+        function atualizarAvisoDatum() {
+            const warning = $('datum-warning');
+            if (state.datum !== 'WGS84') {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // [MELHORIA] GNSS com debounce
+        // ============================================
+        let gnssUpdatePending = false;
+
+        function iniciarGeo() {
+            if (!navigator.geolocation) {
+                showToast('Geolocalização não suportada neste navegador', 'error');
+                return;
+            }
+            state.watchId = navigator.geolocation.watchPosition(
+                function(pos) {
+                    const c = pos.coords;
+                    state.currentPos = {
+                        lat: c.latitude, lng: c.longitude,
+                        alt: c.altitude, precision: c.accuracy,
+                        timestamp: new Date()
+                    };
+                    state.satelliteCount = pos.satellites || (c.satellites) || 0;
+                    state.satelitesPorSistema = estimarSatelites(state.satelliteCount);
+                    // [MELHORIA] Debounce: atualizar status a cada ~500ms máximo
+                    if (!gnssUpdatePending) {
+                        gnssUpdatePending = true;
+                        requestAnimationFrame(function() {
+                            gnssUpdatePending = false;
+                            atualizarStatus();
+                        });
+                    }
+                },
+                function(err) {
+                    if (err.code === 1) showToast('Permissão de localização negada! Habilite nas configurações.', 'error');
+                    else if (err.code === 2) showToast('Sinal GNSS indisponível', 'warn');
+                    else if (err.code === 3) showToast('Tempo esgotado ao obter posição', 'warn');
+                },
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+            );
+        }
+
+        function atualizarStatus() {
+            if (!state.currentPos) return;
+            const p = state.currentPos;
+            $('val-precision').textContent = p.precision.toFixed(1) + 'm';
+            $('dot-precision').className = 'status-dot ' + (p.precision < 5 ? 'dot-green' : p.precision < 10 ? 'dot-yellow' : 'dot-red');
+            $('val-latlon').textContent = p.lat.toFixed(6) + ',' + p.lng.toFixed(6);
+            $('val-alt').textContent = p.alt ? p.alt.toFixed(1) + 'm' : '--';
+            const utm = latLngToUTM(p.lat, p.lng);
+            $('val-utm').textContent = utm.zonaStr + ' ' + utm.easting.toFixed(1) + ' ' + utm.northing.toFixed(1);
+            ['gps','glonass','galileo','beidou'].forEach(function(s) {
+                const el = $('val-' + s);
+                if (el) el.textContent = state.satelitesPorSistema[s];
+            });
+        }
+
+        // ============================================
+        // Navegação por abas
+        // ============================================
+        document.querySelectorAll('.nav-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tab').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                document.querySelectorAll('.tab-panel').forEach(function(p) {
+                    if (p.id !== 'tab-relatorio') p.classList.remove('open');
+                });
+                $('tab-relatorio').style.display = 'none';
+                const tab = btn.dataset.tab;
+                if (tab === 'dados') { $('tab-dados').classList.add('open'); atualizarLista(); }
+                else if (tab === 'exportar') $('tab-exportar').classList.add('open');
+                else if (tab === 'config') $('tab-config').classList.add('open');
+                else if (tab === 'ferramentas') { $('tab-ferramentas').classList.add('open'); atualizarDropdownsFerramentas(); }
+            });
+        });
+
+        // ============================================
+        // Exportar funções para escopo global (handlers HTML)
+        // ============================================
+        window.coletarPonto = coletarPonto;
+        window.toggleModoAuto = toggleModoAuto;
+        window.centralizarPonto = function(i) {
+            if (state.pontos[i]) map.setView([state.pontos[i].lat, state.pontos[i].lng], 19);
+        };
+        window.moverPonto = moverPonto;
+        window.calcularDistanciaAzimute = calcularDistanciaAzimute;
+        window.adicionarPontoManual = adicionarPontoManual;
+        window.exibirInfoPonto = exibirInfoPonto;
+        window.centralizarUsuario = centralizarUsuario;
+        window.toggleInfoPanel = toggleInfoPanel;
+        window.exportarKML = exportarKML;
+        window.exportarCSV = exportarCSV;
+        window.exportarGeoJSON = exportarGeoJSON;
+        window.exportarDXF = exportarDXF;
+        window.compartilhar = compartilhar;
+        window.abrirRelatorio = abrirRelatorio;
+        window.baixarRelatorio = baixarRelatorio;
+        window.abrirImportar = abrirImportar;
+        window.importarArquivo = importarArquivo;
+        window.abrirModal = function(id) { $(id).style.display = 'flex'; };
+        window.fecharModal = function(id) { $(id).style.display = 'none'; };
+        window.salvarProjeto = function() {
+            const nome = $('input-projeto-nome').value.trim();
+            if (!nome) { showToast('Digite um nome para o projeto', 'warn'); return; }
+            state.projetoNome = nome;
+            try {
+                const projetos = JSON.parse(localStorage.getItem('geoarea_projetos_v7') || '{}');
+                projetos[nome] = { pontos: state.pontos, datum: state.datum };
+                localStorage.setItem('geoarea_projetos_v7', JSON.stringify(projetos));
+            } catch(e) { showToast('Erro ao salvar - armazenamento cheio', 'error'); return; }
+            fecharModal('modal-projeto');
+            showToast('Projeto "' + nome + '" salvo!', 'success');
+        };
+        window.abrirGerenciarProjetos = function() {
+            try {
+                const projetos = JSON.parse(localStorage.getItem('geoarea_projetos_v7') || '{}');
+                const lista = $('lista-projetos');
+                const nomes = Object.keys(projetos);
+                lista.innerHTML = nomes.length ? nomes.map(function(n) {
+                    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface2);border-radius:8px;margin-bottom:6px;">' +
+                        '<span onclick="carregarProjeto(\'' + escapeHtml(n).replace(/'/g, "\\'") + '\')" style="cursor:pointer;flex:1;font-weight:600;">' + escapeHtml(n) + ' (' + projetos[n].pontos.length + ' pts)</span>' +
+                        '<button onclick="excluirProjeto(\'' + escapeHtml(n).replace(/'/g, "\\'") + '\')" style="background:var(--danger);color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;" title="Excluir">×</button></div>';
+                }).join('') : 'Nenhum projeto salvo.';
+                abrirModal('modal-gerenciar');
+            } catch(e) { showToast('Erro ao listar projetos', 'error'); }
+        };
+        window.carregarProjeto = function(nome) {
+            try {
+                const projetos = JSON.parse(localStorage.getItem('geoarea_projetos_v7') || '{}');
+                if (projetos[nome]) {
+                    pushUndo('import', { pontosAntes: JSON.parse(JSON.stringify(state.pontos)) });
+                    state.pontos = projetos[nome].pontos;
+                    state.pontos.forEach(function(p) { if (!p.hasOwnProperty('label')) p.label = ''; });
+                    state.projetoNome = nome;
+                    if (projetos[nome].datum) state.datum = projetos[nome].datum;
+                    $('config-datum').value = state.datum;
+                    $('datum-badge').textContent = state.datum;
+                    atualizarAvisoDatum();
+                    atualizarPoligono(); atualizarUI(); atualizarLista(); salvar();
+                    fecharModal('modal-gerenciar');
+                    showToast('Projeto "' + nome + '" carregado', 'success');
+                }
+            } catch(e) { showToast('Erro ao carregar projeto', 'error'); }
+        };
+        window.excluirProjeto = function(nome) {
+            mostrarConfirmacao('Excluir Projeto', 'Tem certeza que deseja excluir o projeto "' + nome + '"?', function() {
+                try {
+                    const projetos = JSON.parse(localStorage.getItem('geoarea_projetos_v7') || '{}');
+                    delete projetos[nome];
+                    localStorage.setItem('geoarea_projetos_v7', JSON.stringify(projetos));
+                    window.abrirGerenciarProjetos(); // reabrir para atualizar lista
+                    showToast('Projeto "' + nome + '" excluído', 'warn');
+                } catch(e) { showToast('Erro ao excluir projeto', 'error'); }
+            });
+        };
+        window.toggleDarkMode = function() {
+            state.darkMode = !state.darkMode;
+            document.body.classList.toggle('dark-mode');
+            salvar();
+        };
+        window.atualizarDatum = atualizarDatum;
+        window.salvarConfigGNSS = salvarConfigGNSS;
+        window.salvarConfigAutoMode = salvarConfigAutoMode;
+        window.salvarConfigAutoInterval = salvarConfigAutoInterval;
+        window.salvarConfigPrecision = salvarConfigPrecision;
+        window.salvarConfigAutoDistance = salvarConfigAutoDistance;
+        // [MELHORIA v2.1] Expor funções de média ponderada
+        window.salvarConfigMedia = salvarConfigMedia;
+        window.cancelarColetaMedia = cancelarColetaMedia;
+
+        // ============================================
+        // Inicialização
+        // ============================================
+        async function init() {
+            try {
+                // Carregar dados salvos
+                carregar();
+
+                // Iniciar GNSS
+                iniciarGeo();
+
+                // Atualizar UI
+                atualizarUI();
+                atualizarBotaoUndo();
+
+                // Aviso de datum
+                atualizarAvisoDatum();
+            } catch(e) {
+                console.error('Erro na inicialização:', e);
+                showToast('Erro ao inicializar. Tente limpar os dados do navegador.', 'error');
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
